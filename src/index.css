@@ -107,9 +107,6 @@
   html {
     font-family: 'Inter', 'SF Pro', system-ui, sans-serif;
   }
-  html.dark {
-    color-scheme: dark;
-  }
   body {
     @apply bg-background text-foreground antialiased;
     font-synthesis: none;

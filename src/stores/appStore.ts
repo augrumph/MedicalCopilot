@@ -74,9 +74,6 @@ interface AppState {
   setAiDetailLevel: (level: 'short' | 'medium' | 'long') => void;
   language: 'pt' | 'en';
   setLanguage: (lang: 'pt' | 'en') => void;
-  theme: 'light' | 'dark';
-  setTheme: (theme: 'light' | 'dark') => void;
-  toggleTheme: () => void;
 }
 
 // Gerar dados mockados realistas
@@ -375,21 +372,6 @@ export const useAppStore = create<AppState>()(
       setAiDetailLevel: (level) => set({ aiDetailLevel: level }),
       language: 'pt',
       setLanguage: (lang) => set({ language: lang }),
-      theme: 'light',
-      setTheme: (theme) => {
-        // Atualizar o DOM
-        if (theme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-        set({ theme });
-      },
-      toggleTheme: () => {
-        const currentTheme = get().theme;
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        get().setTheme(newTheme);
-      },
     }),
     {
       name: 'medical-copilot-storage', // nome único para o localStorage
@@ -399,26 +381,12 @@ export const useAppStore = create<AppState>()(
         appContext: state.appContext,
         isAuthenticated: state.isAuthenticated,
         user: state.user,
-        theme: state.theme,
         clinicName: state.clinicName,
         clinicAddress: state.clinicAddress,
         clinicLocation: state.clinicLocation,
         clinicPhone: state.clinicPhone,
         clinicEmail: state.clinicEmail,
       }),
-      onRehydrateStorage: () => (state) => {
-        // Sempre garantir que temos os dados mock
-        if (state) {
-          state.patients = cachedMockPatients;
-          state.consultations = cachedMockConsultations;
-
-          // MIGRAÇÃO: Forçar tema claro para todos os usuários (sobrescrever tema escuro antigo)
-          if (state.theme === 'dark') {
-            state.theme = 'light';
-            document.documentElement.classList.remove('dark');
-          }
-        }
-      },
     }
   )
 );
