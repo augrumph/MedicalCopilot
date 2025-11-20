@@ -9,19 +9,19 @@ const applyStoredTheme = () => {
     const stored = localStorage.getItem('medical-copilot-storage');
     if (stored) {
       const { state } = JSON.parse(stored);
-      const theme = state?.theme || 'dark';
+      const theme = state?.theme || 'light';
       if (theme === 'dark') {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
     } else {
-      // Tema padrão: dark
-      document.documentElement.classList.add('dark');
+      // Tema padrão: light
+      document.documentElement.classList.remove('dark');
     }
   } catch {
-    // Fallback: dark
-    document.documentElement.classList.add('dark');
+    // Fallback: light
+    document.documentElement.classList.remove('dark');
   }
 };
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Patient, Consultation, AISuggestions,  SignatureType, Prescription } from '@/lib/types';
+import type { Patient, Consultation, AISuggestions, SignatureType, Prescription } from '@/lib/types';
 import { generateMockPatients, generateMockConsultations } from '@/lib/mockData';
 import type { AppContext } from '@/lib/contextConfig';
 import { psychologyPatients, psychologySessions } from '@/lib/psychologyMockData';
@@ -355,7 +355,7 @@ export const useAppStore = create<AppState>()(
       setTranscript: (text) => set({ transcript: text }),
       aiResponse: '',
       setAiResponse: (text) => set({ aiResponse: text }),
-  
+
       // Settings
       doctorName: 'Dr. Silva',
       setDoctorName: (name) => set({ doctorName: name }),
@@ -375,7 +375,7 @@ export const useAppStore = create<AppState>()(
       setAiDetailLevel: (level) => set({ aiDetailLevel: level }),
       language: 'pt',
       setLanguage: (lang) => set({ language: lang }),
-      theme: 'dark',
+      theme: 'light',
       setTheme: (theme) => {
         // Atualizar o DOM
         if (theme === 'dark') {
@@ -411,6 +411,12 @@ export const useAppStore = create<AppState>()(
         if (state) {
           state.patients = cachedMockPatients;
           state.consultations = cachedMockConsultations;
+
+          // MIGRAÇÃO: Forçar tema claro para todos os usuários (sobrescrever tema escuro antigo)
+          if (state.theme === 'dark') {
+            state.theme = 'light';
+            document.documentElement.classList.remove('dark');
+          }
         }
       },
     }
