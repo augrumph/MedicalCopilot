@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { Stethoscope, Users, Settings, Activity, Calendar, TrendingUp, ArrowRight, Sparkles, Clock, CheckCircle2, Brain } from 'lucide-react';
+import { Stethoscope, Users, Settings, Activity, Calendar, TrendingUp, ArrowRight, Sparkles, Clock, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/AppLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/stores/appStore';

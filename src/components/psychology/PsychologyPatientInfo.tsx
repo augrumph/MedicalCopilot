@@ -1,4 +1,4 @@
-import { Brain, Target, AlertTriangle, Pill, Calendar, TrendingUp } from 'lucide-react';
+import { Brain, Target, AlertTriangle, Pill, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';

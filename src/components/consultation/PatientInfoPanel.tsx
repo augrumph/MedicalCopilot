@@ -1,4 +1,4 @@
-import { User, Heart, Pill, AlertTriangle } from 'lucide-react';
+import { Heart, Pill, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -85,7 +85,7 @@ export function PatientInfoPanel({ patient }: PatientInfoPanelProps) {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {patient.allergies.map((allergy, idx) => (
+              {patient.allergies.map((allergy: string, idx: number) => (
                 <Badge key={idx} variant="destructive" className="text-sm">
                   {allergy}
                 </Badge>

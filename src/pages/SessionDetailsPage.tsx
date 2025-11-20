@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, AlertTriangle, CheckCircle2, TrendingUp, MessageCircle, Target, Lightbulb, Activity } from 'lucide-react';
+import { ArrowLeft,  AlertTriangle, CheckCircle2, TrendingUp, MessageCircle, Target, Lightbulb, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/stores/appStore';
-import { getContextConfig } from '@/lib/contextConfig';
 import { psychologyPatients, psychologySessions } from '@/lib/psychologyMockData';
 import type { Patient, Consultation } from '@/lib/types';
 
@@ -15,7 +14,7 @@ export function SessionDetailsPage() {
   const navigate = useNavigate();
   const { id: sessionId } = useParams<{ id: string }>();
   const { appContext, consultations: medicalConsultations, patients: medicalPatients } = useAppStore();
-  const config = getContextConfig(appContext);
+  // const config = getContextConfig(appContext);
 
   const [session, setSession] = useState<Consultation | null>(null);
   const [patient, setPatient] = useState<Patient | null>(null);

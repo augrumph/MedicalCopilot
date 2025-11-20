@@ -15,6 +15,8 @@ export type Patient = {
   gender?: "masculino" | "feminino" | "outro" | "nao_informado";
   mainConditions?: string[]; // DM2, HAS etc.
   medications?: string[];
+  allergies?: string[];
+  address?: string;
   attachments?: PatientAttachment[]; // Arquivos anexados (exames, laudos, imagens, etc.)
   notes?: string; // observações gerais
 };
@@ -26,6 +28,8 @@ export type AISuggestions = {
   diagnosesMostLikely: string[];
   diagnosesPossible: string[];
   diagnosesCantMiss: string[];
+  diagnosesToConsider: string[];
+  diagnosesUnlikely: string[];
   reminders: string[]; // coisas a não esquecer (exame físico, encaminhamento etc.)
 };
 
@@ -48,6 +52,12 @@ export type Prescription = {
   verificationCode?: string; // Código de verificação único
 };
 
+export type PatientSummary = {
+  explanation: string;
+  whatToDo: string[];
+  whenToReturn: string[];
+};
+
 export type Consultation = {
   id: string;
   patientId: string;
@@ -57,7 +67,7 @@ export type Consultation = {
   transcript?: string; // texto da transcrição
   aiSuggestions?: AISuggestions;
   doctorNotes?: string; // nota gerada/editada
-  patientSummary?: string; // resumo para o paciente
+  patientSummary?: PatientSummary; // resumo para o paciente
   prescription?: Prescription; // Receita médica associada
   date?: string; // deprecated, use startedAt instead
 };

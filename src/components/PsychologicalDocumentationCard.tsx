@@ -1,5 +1,5 @@
 import React, { useState, memo } from 'react';
-import { FileText, Sparkles, Download, Save, AlertTriangle } from 'lucide-react';
+import { FileText, Sparkles, Download, AlertTriangle } from 'lucide-react';
 
 type DocumentType = 'declaration' | 'report' | 'referral' | 'other';
 

@@ -1,5 +1,5 @@
 import React, { useState, memo } from 'react';
-import { Moon, Sun, Zap, Brain, Clock } from 'lucide-react';
+import { Moon, Zap, Brain, Clock } from 'lucide-react';
 
 interface SessionFocusModeProps {
   clientName: string;

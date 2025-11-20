@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, User, ArrowRight, Search, Filter, FileText, Clock, CheckCircle2, LayoutGrid, LayoutList, X, Stethoscope, Brain, TrendingUp } from 'lucide-react';
+import { ArrowRight, Search, Filter, FileText,  LayoutGrid, LayoutList, X, Stethoscope, Brain, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/AppLayout';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -88,16 +87,6 @@ export function HistoryPage() {
     });
   }, [consultations, patients, searchTerm, dateFilter, diagnosisFilter]);
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   const formatDuration = (startedAt: string, finishedAt?: string) => {
     if (!finishedAt) return 'Em andamento';
     const start = new Date(startedAt);
@@ -110,18 +99,6 @@ export function HistoryPage() {
     dateFilter !== 'all',
     diagnosisFilter !== 'all',
   ].filter(Boolean).length;
-
-  const getDateFilterLabel = (filter: DateFilter) => {
-    const labels = {
-      all: 'Todas as datas',
-      today: 'Hoje',
-      week: 'Última semana',
-      month: 'Último mês',
-      quarter: 'Último trimestre',
-      year: 'Último ano'
-    };
-    return labels[filter];
-  };
 
   return (
     <AppLayout title={config.historyTitle} description={config.historyDescription}>

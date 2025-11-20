@@ -1,5 +1,4 @@
 import React, { memo } from 'react';
-import { Pill } from 'lucide-react';
 
 interface ControlledMedicationCardProps {
   med: {
@@ -12,6 +11,7 @@ interface ControlledMedicationCardProps {
     quantity?: string;
     quantityText?: string;
     indication: string;
+    controlledType?: string | null;
   };
   idx: number;
 }

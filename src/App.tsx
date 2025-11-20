@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
-import LoginPage from './pages/LoginPage';
 import ContextRouter from './components/ContextRouter';
 import { NotificationDialog } from './components/NotificationDialog';
-import ProtectedRoute from './ProtectedRoute';
 
 const queryClient = new QueryClient({
   defaultOptions: {

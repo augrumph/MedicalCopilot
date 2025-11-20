@@ -15,7 +15,6 @@ const PsychologyNoteCard: React.FC<PsychologyNoteCardProps> = ({ client, initial
   const [note, setNote] = useState(initialNote);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState('');
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -30,11 +29,10 @@ const PsychologyNoteCard: React.FC<PsychologyNoteCardProps> = ({ client, initial
     // Simulate AI generation
     setIsSaving(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     // This would actually call an AI service in a real implementation
     const aiSuggestion = `Resumo da sessão com ${client.name} em ${client.sessionDate}.\n\nTemas abordados: [temas relevantes]\n\nIntervenções utilizadas: [intervenções]\n\nPróximos passos: [metas para próxima sessão]\n\nObservações: [notas clínicas relevantes]`;
-    
-    setGeneratedContent(aiSuggestion);
+
     setNote(prev => prev + (prev ? '\n\n' : '') + aiSuggestion);
     setIsSaving(false);
   };

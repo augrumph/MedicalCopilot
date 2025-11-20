@@ -9,14 +9,12 @@ import {
   Info,
   TrendingUp,
   Shield,
-  Zap,
   Activity
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Separator } from '@/components/ui/separator';
 
 interface DiagnosticHypothesisItem {
   condition: string;

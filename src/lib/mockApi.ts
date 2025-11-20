@@ -4,7 +4,7 @@ import type { AISuggestions, UsageStats } from './types';
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Mock: Perguntar sobre o paciente
-export async function askAboutPatient(patientId: string, question: string): Promise<{ answer: string }> {
+export async function askAboutPatient(_patientId: string, question: string): Promise<{ answer: string }> {
   await delay(800);
 
   const mockAnswers: Record<string, string> = {
@@ -29,7 +29,7 @@ export async function askAboutPatient(patientId: string, question: string): Prom
 }
 
 // Mock: Obter sugestões da IA durante a consulta
-export async function getAISuggestions(consultationId: string, transcript: string): Promise<AISuggestions> {
+export async function getAISuggestions(/* consultationId: string, transcript: string */): Promise<AISuggestions> {
   await delay(1200);
 
   return {
@@ -51,6 +51,8 @@ export async function getAISuggestions(consultationId: string, transcript: strin
       'Abscesso peritonsilar',
       'Epiglotite (se dispneia ou estridor)',
     ],
+    diagnosesToConsider: [],
+    diagnosesUnlikely: [],
     reminders: [
       'Verificar sintomas de alarme antes de liberar o paciente',
       'Examinar orofaringe com boa iluminação',
@@ -61,7 +63,7 @@ export async function getAISuggestions(consultationId: string, transcript: strin
 }
 
 // Mock: Gerar nota clínica
-export async function generateClinicalNote(consultationId: string): Promise<string> {
+export async function generateClinicalNote(/* consultationId: string */): Promise<string> {
   await delay(1500);
 
   return `**Queixa principal:**
@@ -97,12 +99,10 @@ CRM: XXXXX
 Data: ${new Date().toLocaleDateString('pt-BR')}`;
 }
 
+import type { PatientSummary } from './types';
+
 // Mock: Gerar resumo para o paciente
-export async function generatePatientSummary(consultationId: string): Promise<{
-  explanation: string;
-  whatToDo: string[];
-  whenToReturn: string[];
-}> {
+export async function generatePatientSummary(_consultationId: string): Promise<PatientSummary> {
   await delay(1000);
 
   return {

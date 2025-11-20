@@ -247,6 +247,8 @@ Médico: Entendo. Vou examinar...`,
         diagnosesMostLikely: diagnoses,
         diagnosesPossible: possibleDiagnoses,
         diagnosesCantMiss: cantMiss,
+        diagnosesToConsider: [],
+        diagnosesUnlikely: [],
         reminders: reminders
       },
       doctorNotes: generateClinicalNote(diagnosis, patient.age || 50),

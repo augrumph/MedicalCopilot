@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Stethoscope, Users, Calendar, UserPlus, Grid3x3, List, ChevronDown, ChevronUp, FileText, Upload, Pill, Edit, Eye } from 'lucide-react';
+import { Plus, Search, Stethoscope, Users, UserPlus, Grid3x3, List, ChevronDown, ChevronUp, FileText, Upload, Pill, Edit, Eye, Calendar } from 'lucide-react';;
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -183,7 +183,7 @@ const PatientsPage = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Mulheres</p>
                     <p className="text-3xl font-bold text-gray-900 mt-1">
-                      {patients.filter(p => p.gender === 'Feminino').length}
+                      {patients.filter(p => p.gender === 'feminino').length}
                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#FF3F7F] to-[#FF1654] flex items-center justify-center">
@@ -205,7 +205,7 @@ const PatientsPage = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Homens</p>
                     <p className="text-3xl font-bold text-gray-900 mt-1">
-                      {patients.filter(p => p.gender === 'Masculino').length}
+                      {patients.filter(p => p.gender === 'masculino').length}
                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#FFC400] to-[#FF9500] flex items-center justify-center">
@@ -285,7 +285,7 @@ const PatientsPage = () => {
                               {patient.name}
                             </h3>
                             <div className="flex items-center gap-2 mt-1">
-                              <Badge className={cn("text-xs font-semibold border", getGenderBadgeColor(patient.gender))}>
+                              <Badge className={cn("text-xs font-semibold border", getGenderBadgeColor(patient.gender || ''))}>
                                 {patient.gender}
                               </Badge>
                               <span className="text-sm text-gray-600">{patient.age} anos</span>
@@ -470,7 +470,7 @@ const PatientsPage = () => {
                           {patient.name}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge className={cn("text-xs font-semibold border", getGenderBadgeColor(patient.gender))}>
+                          <Badge className={cn("text-xs font-semibold border", getGenderBadgeColor(patient.gender || ''))}>
                             {patient.gender}
                           </Badge>
                           <span className="text-sm text-gray-600">{patient.age} anos</span>

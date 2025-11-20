@@ -8,35 +8,17 @@ import { Brain, Lightbulb, Pill, FileCheck, FileText, CheckCircle2, XCircle, Ale
 interface TabContentProps {
   activeTab: string;
   transcript: string;
-  patientData: any;
-  isActive: boolean;
   suggestedMedications: any[];
-  diagnosisData: any;
-  currentConsultation: any;
-  selectedPatient: any;
-  handleGenerateNote: () => void;
-  isGeneratingNote: boolean;
   prescriptionGenerated: boolean;
   setPrescriptionGenerated: (value: boolean) => void;
-  handleToggleListen: () => void;
-  isListening: boolean;
 }
 
 const TabContent: React.FC<TabContentProps> = ({
   activeTab,
   transcript,
-  patientData,
-  isActive,
   suggestedMedications,
-  diagnosisData,
-  currentConsultation,
-  selectedPatient,
-  handleGenerateNote,
-  isGeneratingNote,
   prescriptionGenerated,
-  setPrescriptionGenerated,
-  handleToggleListen,
-  isListening
+  setPrescriptionGenerated
 }) => {
   const renderContent = () => {
     switch (activeTab) {

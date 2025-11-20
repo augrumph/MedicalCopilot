@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Pill, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { Pill } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MedicationCardProps {
@@ -17,11 +17,12 @@ interface MedicationCardProps {
     indication: string;
     type: 'primary' | 'alternative' | 'optional' | 'controlled';
     isControlled?: boolean;
+    controlledType?: string | null;
   };
-  idx: number;
+  idx?: number;
 }
 
-const MedicationCard: React.FC<MedicationCardProps> = ({ med, idx }) => {
+const MedicationCard: React.FC<MedicationCardProps> = ({ med }) => {
   return (
     <Card className={cn(
       "shadow-md",

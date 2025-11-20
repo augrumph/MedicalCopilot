@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, User, Clock, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, FileText } from 'lucide-react';
+import { ArrowLeft, Clock, AlertTriangle, Lightbulb, MessageSquare, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,16 +40,6 @@ export function ConsultationDetailsPage() {
       </AppLayout>
     );
   }
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   const formatShortDate = (date: string) => {
     return new Date(date).toLocaleDateString('pt-BR', {
@@ -273,7 +263,7 @@ export function ConsultationDetailsPage() {
                       <div>
                         <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Conduta Anterior</h4>
                         <ul className="space-y-1.5">
-                          {consultation.patientSummary.whatToDo.map((item, idx) => (
+                          {consultation.patientSummary.whatToDo.map((item: string, idx: number) => (
                             <li key={idx} className="text-sm text-gray-900 flex items-start gap-2">
                               <span className="text-[#8C00FF] font-bold">•</span>
                               <span>{item}</span>
@@ -409,7 +399,7 @@ export function ConsultationDetailsPage() {
                       Orientações de Retorno
                     </h3>
                     <ul className="space-y-2">
-                      {consultation.patientSummary.whenToReturn.map((item, idx) => (
+                      {consultation.patientSummary.whenToReturn.map((item: string, idx: number) => (
                         <li key={idx} className="text-sm text-gray-900 flex items-start gap-2">
                           <span className="text-blue-600 font-bold">→</span>
                           <span>{item}</span>

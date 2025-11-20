@@ -1,14 +1,13 @@
 import React, { useState, memo } from 'react';
-import { Lightbulb, AlertTriangle, Target, TrendingUp, Sparkles } from 'lucide-react';
+import { Lightbulb, AlertTriangle, Target, Sparkles } from 'lucide-react';
 
 interface PsychologyAISuggestionsProps {
   clientName: string;
   sessionNotes: string;
 }
 
-const PsychologyAISuggestions: React.FC<PsychologyAISuggestionsProps> = ({ 
-  clientName, 
-  sessionNotes 
+const PsychologyAISuggestions: React.FC<PsychologyAISuggestionsProps> = ({
+  clientName
 }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);

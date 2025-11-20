@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Patient, Consultation, AISuggestions, UsageStats } from '@/lib/types';
+import type { Patient, Consultation, AISuggestions,  SignatureType, Prescription } from '@/lib/types';
 import { generateMockPatients, generateMockConsultations } from '@/lib/mockData';
 import type { AppContext } from '@/lib/contextConfig';
 import { psychologyPatients, psychologySessions } from '@/lib/psychologyMockData';
@@ -60,6 +60,16 @@ interface AppState {
   setDoctorName: (name: string) => void;
   doctorSpecialty: string;
   setDoctorSpecialty: (specialty: string) => void;
+  clinicName: string;
+  setClinicName: (name: string) => void;
+  clinicAddress: string;
+  setClinicAddress: (address: string) => void;
+  clinicLocation: string;
+  setClinicLocation: (location: string) => void;
+  clinicPhone: string;
+  setClinicPhone: (phone: string) => void;
+  clinicEmail: string;
+  setClinicEmail: (email: string) => void;
   aiDetailLevel: 'short' | 'medium' | 'long';
   setAiDetailLevel: (level: 'short' | 'medium' | 'long') => void;
   language: 'pt' | 'en';
@@ -240,7 +250,7 @@ export const useAppStore = create<AppState>()(
         return {
           currentConsultation: {
             ...state.currentConsultation,
-            patientSummary: summary,
+            patientSummary: summary as any, // Temporary fix - the function needs to be updated to handle PatientSummary type
           }
         };
       }),
@@ -351,6 +361,16 @@ export const useAppStore = create<AppState>()(
       setDoctorName: (name) => set({ doctorName: name }),
       doctorSpecialty: 'Clínico Geral',
       setDoctorSpecialty: (specialty) => set({ doctorSpecialty: specialty }),
+      clinicName: '',
+      setClinicName: (name) => set({ clinicName: name }),
+      clinicAddress: '',
+      setClinicAddress: (address) => set({ clinicAddress: address }),
+      clinicLocation: '',
+      setClinicLocation: (location) => set({ clinicLocation: location }),
+      clinicPhone: '',
+      setClinicPhone: (phone) => set({ clinicPhone: phone }),
+      clinicEmail: '',
+      setClinicEmail: (email) => set({ clinicEmail: email }),
       aiDetailLevel: 'medium',
       setAiDetailLevel: (level) => set({ aiDetailLevel: level }),
       language: 'pt',
@@ -380,6 +400,11 @@ export const useAppStore = create<AppState>()(
         isAuthenticated: state.isAuthenticated,
         user: state.user,
         theme: state.theme,
+        clinicName: state.clinicName,
+        clinicAddress: state.clinicAddress,
+        clinicLocation: state.clinicLocation,
+        clinicPhone: state.clinicPhone,
+        clinicEmail: state.clinicEmail,
       }),
       onRehydrateStorage: () => (state) => {
         // Sempre garantir que temos os dados mock

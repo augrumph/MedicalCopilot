@@ -1,6 +1,5 @@
-import { Lightbulb, AlertCircle, AlertTriangle, ChevronDown, ChevronUp, CheckCircle, XCircle, Plus, Minus, Check, X } from 'lucide-react';
+import { Lightbulb, AlertCircle, AlertTriangle, ChevronDown, ChevronUp, CheckCircle, XCircle, Check, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 

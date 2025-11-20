@@ -1,5 +1,4 @@
-import { motion } from 'framer-motion';
-import { Brain, Target, CheckCircle2, AlertCircle, TrendingUp, Calendar, MessageSquare } from 'lucide-react';
+import { Brain, Target, CheckCircle2, AlertCircle, TrendingUp, MessageSquare } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -10,7 +9,6 @@ interface PsychologySessionSummaryProps {
 }
 
 export function PsychologySessionSummary({
-  patientName,
   lastSessionDate,
   daysSinceLastSession
 }: PsychologySessionSummaryProps) {

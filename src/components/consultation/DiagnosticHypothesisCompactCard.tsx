@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, Lightbulb, CheckCircle, XCircle, Check, X } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
@@ -17,8 +17,6 @@ interface DiagnosticHypothesisItem {
 
 interface DiagnosticHypothesisCompactCardProps {
   item: DiagnosticHypothesisItem;
-  index: number;
-  sectionTitle: string;
   isExpanded: boolean;
   onToggle: () => void;
 }
@@ -75,8 +73,6 @@ const shortenText = (text: string, maxLength: number = 120) => {
 
 export function DiagnosticHypothesisCompactCard({
   item,
-  index,
-  sectionTitle,
   isExpanded,
   onToggle
 }: DiagnosticHypothesisCompactCardProps) {

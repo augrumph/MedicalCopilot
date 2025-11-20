@@ -79,7 +79,7 @@ export function SessionThemesAndGoals({ patientName }: SessionThemesAndGoalsProp
           <Target className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h3 className="font-bold text-lg text-gray-900">Temas e Metas Terapêuticas</h3>
+          <h3 className="font-bold text-lg text-gray-900">Temas e Metas Terapêuticas - {patientName}</h3>
           <p className="text-sm text-gray-600">Acompanhamento da evolução do paciente</p>
         </div>
       </div>

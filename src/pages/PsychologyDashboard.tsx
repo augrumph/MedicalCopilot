@@ -20,8 +20,8 @@ const mockClients = [
     lastSession: '10/11/2024',
     sessionFrequency: 'Semanal',
     therapeuticApproach: 'TCC',
-    riskLevel: 'low',
-    status: 'active'
+    riskLevel: 'low' as const,
+    status: 'active' as const
   },
   {
     id: '2',
@@ -32,8 +32,8 @@ const mockClients = [
     lastSession: '08/11/2024',
     sessionFrequency: 'Semanal',
     therapeuticApproach: 'Psicodinâmica',
-    riskLevel: 'medium',
-    status: 'active'
+    riskLevel: 'medium' as const,
+    status: 'active' as const
   },
   {
     id: '3',
@@ -44,8 +44,8 @@ const mockClients = [
     lastSession: '12/11/2024',
     sessionFrequency: 'Quinzenal',
     therapeuticApproach: 'Humanista',
-    riskLevel: 'low',
-    status: 'active'
+    riskLevel: 'low' as const,
+    status: 'active' as const
   }
 ];
 
@@ -83,7 +83,6 @@ const mockPreparationData = {
 
 const PsychologyDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'today' | 'clients' | 'preparation' | 'notes' | 'documents'>('today');
-  const [focusMode, setFocusMode] = useState(false);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
 
   const handleStartSession = (clientId: string) => {
@@ -93,10 +92,6 @@ const PsychologyDashboard: React.FC = () => {
 
   const handleEndSession = () => {
     setSelectedClient(null);
-  };
-
-  const handleFocusToggle = (enabled: boolean) => {
-    setFocusMode(enabled);
   };
 
   return (
@@ -244,7 +239,7 @@ const PsychologyDashboard: React.FC = () => {
                 clientName="Ana Silva"
                 onStartSession={() => handleStartSession('1')}
                 onEndSession={handleEndSession}
-                onFocusToggle={handleFocusToggle}
+                onFocusToggle={() => {}}
               />
             </div>
           </div>

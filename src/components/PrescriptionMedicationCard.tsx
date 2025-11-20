@@ -1,8 +1,7 @@
 import React, { memo, useState } from 'react';
-import { CheckCircle2, AlertTriangle, Edit3, Trash2, Save } from 'lucide-react';
+import { Edit3, Trash2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 
 interface PrescriptionMedicationCardProps {
   med: {
@@ -17,6 +16,7 @@ interface PrescriptionMedicationCardProps {
     quantityText?: string;
     indication: string;
     isControlled?: boolean;
+    controlledType?: string | null;
   };
   idx: number;
   onEdit: (updatedMed: any) => void;

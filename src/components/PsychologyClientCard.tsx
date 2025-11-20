@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { User, Calendar, Clock, FileText, Heart, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, FileText, Heart, AlertTriangle } from 'lucide-react';
 
 interface PsychologyClientCardProps {
   client: {

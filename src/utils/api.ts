@@ -63,7 +63,7 @@ export const mockApi = {
   },
 
   // AI Transcription API
-  transcribeAudio: async (audioData: Blob): Promise<string> => {
+  transcribeAudio: async (_audioData: Blob): Promise<string> => {
     await new Promise(resolve => setTimeout(resolve, 800));
     const mockResponses = [
       "O paciente relata dor de cabeça há 3 dias, piorando com estresse.",
@@ -75,7 +75,7 @@ export const mockApi = {
   },
 
   // AI Reasoning API
-  getAIReasoning: async (transcript: string): Promise<any> => {
+  getAIReasoning: async (_transcript: string): Promise<any> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     return {

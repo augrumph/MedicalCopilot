@@ -195,7 +195,7 @@ export function PsychologyClinicalHypothesis({ patientName }: PsychologyClinical
           <Lightbulb className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h3 className="font-bold text-lg text-gray-900">Hipóteses Clínicas</h3>
+          <h3 className="font-bold text-lg text-gray-900">Hipóteses Clínicas - {patientName}</h3>
           <p className="text-sm text-gray-600">Análise baseada em evidências clínicas e relato do paciente</p>
         </div>
       </div>

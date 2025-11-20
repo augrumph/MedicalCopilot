@@ -2,7 +2,6 @@ import { motion } from 'framer-motion';
 import { Lightbulb, Brain, Heart, Activity, BookOpen, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 interface TherapeuticInterventionsProps {
   patientName: string;
@@ -152,7 +151,7 @@ export function TherapeuticInterventions({ patientName }: TherapeuticInterventio
           <Lightbulb className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h3 className="font-bold text-lg text-gray-900">Intervenções Terapêuticas Sugeridas</h3>
+          <h3 className="font-bold text-lg text-gray-900">Intervenções Terapêuticas Sugeridas - {patientName}</h3>
           <p className="text-sm text-gray-600">Baseadas na abordagem TCC e demandas apresentadas</p>
         </div>
       </div>
