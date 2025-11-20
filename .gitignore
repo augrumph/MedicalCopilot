@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# TypeScript build info
+*.tsbuildinfo
+
+# AI assistants config
+.claude/
+.cursor/
+
+# Scripts temporários
+*.sh

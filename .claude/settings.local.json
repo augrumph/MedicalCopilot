@@ -7,7 +7,21 @@
       "Bash(nul)",
       "Bash(npm run dev:*)",
       "Bash(npx shadcn@latest add:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run build:*)",
+      "Bash(chmod:*)",
+      "Bash(./fix-errors.sh)",
+      "Bash(./fix-complex-errors.sh)",
+      "Bash(./fix-syntax.sh)",
+      "Bash(./fix-final.sh)",
+      "Bash(./fix-remaining.sh)",
+      "Bash(npx eslint:*)",
+      "Bash(./fix-unused-vars.sh)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: resolve all TypeScript compilation errors and rebuild project\n\nThis commit fixes multiple TypeScript errors across the codebase:\n\n- Fixed JSX syntax error in ConsultationPage.tsx (lines 1574-1577)\n- Removed unused variables and imports:\n  - PsychologySessionSummary: removed unused patientName parameter\n  - PsychologyAISuggestions: removed unused sessionNotes parameter\n  - ConsultationPage: removed editableNote, isGeneratingSummary, handleGeneratePatientSummary, handleFinishConsultation, prescriptionType, signatureModalType\n  - PsychologyDashboard: removed unused focusMode variable\n- Fixed TypeScript type errors:\n  - PatientsPage: handled undefined gender values with fallback\n  - PsychologyDashboard: added ''as const'' assertions to mockClients data\n  - PsychologyDashboard: replaced missing handleFocusToggle with noop function\n- Cleaned up imports in ConsultationPage (removed generatePatientSummary)\n\nAll files now compile successfully with no TypeScript errors.\nBuild verified with npm run build.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push)",
+      "Bash(gh pr create:*)",
+      "Bash(git remote:*)"
     ],
     "deny": [],
     "ask": []
