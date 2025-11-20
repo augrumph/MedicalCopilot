@@ -38,7 +38,8 @@ const PatientHeader: React.FC<PatientHeaderProps> = ({
           {gender && <span className="text-xl text-gray-300">{gender}</span>}
         </div>
         {diagnosis && (
-          <p className="text-lg text-[#2e8b57] mt-2">Diagnóstico: {diagnosis}</p>  {/* Sea green for success/positive info */}
+          /* Sea green for success/positive info */
+          <p className="text-lg text-[#2e8b57] mt-2">Diagnóstico: {diagnosis}</p>
         )}
       </div>
     </div>
