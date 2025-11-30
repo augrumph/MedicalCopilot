@@ -13,6 +13,8 @@ export type Patient = {
   name: string;
   age?: number;
   gender?: "masculino" | "feminino" | "outro" | "nao_informado";
+  phone?: string;
+  email?: string;
   mainConditions?: string[]; // DM2, HAS etc.
   medications?: string[];
   allergies?: string[];

@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   FileText,
   User,
-  Stethoscope,
   Mic,
   MicOff,
   Brain,
@@ -12,19 +11,17 @@ import {
   Pill,
   AlertTriangle,
   CheckCircle2,
-  XCircle,
   FileCheck,
-  Printer,
-  Download,
   CheckCircle,
   Target,
   Heart,
-  Clock
+  Clock,
+  XCircle,
+  Stethoscope,
+  Activity,
+  Calendar
 } from 'lucide-react';
-import PrescriptionQRCode from '@/components/PrescriptionQRCode';
 import MedicationCard from '@/components/MedicationCard';
-import ControlledMedicationCard from '@/components/ControlledMedicationCard';
-import PrescriptionMedicationCard from '@/components/PrescriptionMedicationCard';
 import { AppLayout } from '@/components/AppLayout';
 import { AIChatPanel } from '@/components/consultation/AIChatPanel';
 import { Button } from '@/components/ui/button';
@@ -34,23 +31,22 @@ import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/stores/appStore';
 import { generateClinicalNote } from '@/lib/mockApi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { cn, getPatientAvatar } from '@/lib/utils';
 import { getContextConfig } from '@/lib/contextConfig';
 import { PsychologyClinicalHypothesis } from '@/components/psychology/PsychologyClinicalHypothesis';
 import { TherapeuticInterventions } from '@/components/psychology/TherapeuticInterventions';
 import { SessionThemesAndGoals } from '@/components/psychology/SessionThemesAndGoals';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function ConsultationPage() {
   const navigate = useNavigate();
-  const {
-    currentConsultation,
-    selectedPatient,
-    updateTranscript,
-    setDoctorNotes,
-    doctorName,
-    doctorSpecialty,
-    appContext,
-  } = useAppStore();
+  const currentConsultation = useAppStore(state => state.currentConsultation);
+  const selectedPatient = useAppStore(state => state.selectedPatient);
+  const updateTranscript = useAppStore(state => state.updateTranscript);
+  const setDoctorNotes = useAppStore(state => state.setDoctorNotes);
+  const appContext = useAppStore(state => state.appContext);
   const config = getContextConfig(appContext);
 
   const [isListening, setIsListening] = useState(false);
@@ -59,11 +55,6 @@ export function ConsultationPage() {
   const [showNoteSection, setShowNoteSection] = useState(false);
   const [activeTab, setActiveTab] = useState<'ai' | 'diagnosis' | 'medication' | 'prescription' | 'themes' | 'interventions'>('ai');
   const [prescriptionGenerated, setPrescriptionGenerated] = useState(false);
-  const [showSignatureModal, setShowSignatureModal] = useState(false);
-  const [prescriptionMedications, setPrescriptionMedications] = useState<any[]>([]);
-  const [crm] = useState('123456');
-  const [uf] = useState('SP');
-  const [signatureType] = useState<'icp-brasil-mock' | 'icp-brasil-a3' | 'icp-brasil-a1'>('icp-brasil-mock');
 
   useEffect(() => {
     if (!isListening) return;
@@ -126,32 +117,32 @@ export function ConsultationPage() {
   if (!currentConsultation || !selectedPatient) {
     return (
       <AppLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <div className="flex flex-col items-center justify-center min-h-[80vh] text-center p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="space-y-6 max-w-md"
+            className="space-y-8 max-w-md w-full"
           >
             <div className="flex justify-center">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#8C00FF] to-[#450693] rounded-full blur-2xl opacity-20 animate-pulse"></div>
-                <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center shadow-xl">
-                  <Stethoscope className="h-12 w-12 text-white" />
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-purple-600/30 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
+                <div className="relative h-32 w-32 rounded-full bg-gradient-to-br from-white to-gray-50 border-4 border-white shadow-2xl flex items-center justify-center transform group-hover:scale-105 transition-transform duration-300">
+                  <User className="h-12 w-12 text-primary/80" />
                 </div>
               </div>
             </div>
-            <div className="space-y-3">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-[#450693] to-[#8C00FF] bg-clip-text text-transparent">
+            <div className="space-y-4">
+              <h2 className="text-4xl font-bold tracking-tight text-gray-900">
                 {appContext === 'psychology' ? 'Nenhuma Sessão Ativa' : 'Nenhuma Consulta Ativa'}
               </h2>
-              <p className="text-gray-600 text-lg">
+              <p className="text-gray-500 text-lg leading-relaxed">
                 Para iniciar {appContext === 'psychology' ? 'uma sessão' : 'uma consulta'}, selecione um {config.patientLabel.toLowerCase()} na lista de {config.patientLabelPlural.toLowerCase()}.
               </p>
             </div>
             <Button
               onClick={() => navigate('/patients')}
               size="lg"
-              className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white hover:opacity-90 shadow-lg hover:shadow-xl transition-all"
+              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-full px-8 h-12 text-base font-medium"
             >
               <User className="mr-2 h-5 w-5" />
               Ver {config.patientLabelPlural}
@@ -162,697 +153,512 @@ export function ConsultationPage() {
     );
   }
 
-  const suggestedMedications: Array<{
-    name: string;
-    concentration: string;
-    form: string;
-    via: string;
-    dosage: string;
-    duration: string;
-    quantity: string;
-    quantityText: string;
-    indication: string;
-    type: 'primary' | 'alternative' | 'optional' | 'controlled';
-    isControlled: boolean;
-    controlledType: string | null;
-  }> = [
-      {
-        name: 'Paracetamol',
-        concentration: '500 mg',
-        form: 'comprimidos',
-        via: 'VO (via oral)',
-        dosage: '1 comprimido a cada 6 horas',
-        duration: '5 dias',
-        quantity: '20 comprimidos',
-        quantityText: '20 (vinte) comprimidos',
-        indication: 'Para dor e febre',
-        type: 'primary',
-        isControlled: false,
-        controlledType: null
-      },
-      {
-        name: 'Ibuprofeno',
-        concentration: '400 mg',
-        form: 'comprimidos',
-        via: 'VO (via oral)',
-        dosage: '1 comprimido a cada 8 horas',
-        duration: '3 a 5 dias',
-        quantity: '15 comprimidos',
-        quantityText: '15 (quinze) comprimidos',
-        indication: 'Para dor e inflamação',
-        type: 'alternative',
-        isControlled: false,
-        controlledType: null
-      },
-      {
-        name: 'Dipirona',
-        concentration: '500 mg',
-        form: 'comprimidos',
-        via: 'VO (via oral)',
-        dosage: '1 comprimido a cada 6 horas, se necessário',
-        duration: 'Conforme necessário',
-        quantity: '10 comprimidos',
-        quantityText: '10 (dez) comprimidos',
-        indication: 'Para alívio da dor',
-        type: 'alternative',
-        isControlled: false,
-        controlledType: null
-      },
-      {
-        name: 'Loratadina',
-        concentration: '10 mg',
-        form: 'comprimidos',
-        via: 'VO (via oral)',
-        dosage: '1 comprimido por dia',
-        duration: '5 dias',
-        quantity: '5 comprimidos',
-        quantityText: '5 (cinco) comprimidos',
-        indication: 'Para sintomas alérgicos',
-        type: 'optional',
-        isControlled: false,
-        controlledType: null
-      },
-      {
-        name: 'Diazepam',
-        concentration: '5 mg',
-        form: 'comprimidos',
-        via: 'VO (via oral)',
-        dosage: '1 comprimido a noite, conforme necessidade',
-        duration: '7 dias',
-        quantity: '10 comprimidos',
-        quantityText: '10 (dez) comprimidos',
-        indication: 'Ansiedade e espasmos musculares',
-        type: 'controlled',
-        isControlled: true,
-        controlledType: 'benzodiazepínico'
-      }
-    ];
+  const suggestedMedications = [
+    {
+      name: 'Paracetamol',
+      concentration: '500 mg',
+      form: 'comprimidos',
+      via: 'VO (via oral)',
+      dosage: '1 comprimido a cada 6 horas',
+      duration: '5 dias',
+      quantity: '20 comprimidos',
+      quantityText: '20 (vinte) comprimidos',
+      indication: 'Para dor e febre',
+      type: 'primary' as const,
+      isControlled: false,
+      controlledType: null
+    },
+    {
+      name: 'Ibuprofeno',
+      concentration: '400 mg',
+      form: 'comprimidos',
+      via: 'VO (via oral)',
+      dosage: '1 comprimido a cada 8 horas',
+      duration: '3 a 5 dias',
+      quantity: '15 comprimidos',
+      quantityText: '15 (quinze) comprimidos',
+      indication: 'Para dor e inflamação',
+      type: 'alternative' as const,
+      isControlled: false,
+      controlledType: null
+    },
+    {
+      name: 'Dipirona',
+      concentration: '500 mg',
+      form: 'comprimidos',
+      via: 'VO (via oral)',
+      dosage: '1 comprimido a cada 6 horas, se necessário',
+      duration: 'Conforme necessário',
+      quantity: '10 comprimidos',
+      quantityText: '10 (dez) comprimidos',
+      indication: 'Para alívio da dor',
+      type: 'alternative' as const,
+      isControlled: false,
+      controlledType: null
+    },
+    {
+      name: 'Loratadina',
+      concentration: '10 mg',
+      form: 'comprimidos',
+      via: 'VO (via oral)',
+      dosage: '1 comprimido por dia',
+      duration: '5 dias',
+      quantity: '5 comprimidos',
+      quantityText: '5 (cinco) comprimidos',
+      indication: 'Para sintomas alérgicos',
+      type: 'optional' as const,
+      isControlled: false,
+      controlledType: null
+    },
+    {
+      name: 'Diazepam',
+      concentration: '5 mg',
+      form: 'comprimidos',
+      via: 'VO (via oral)',
+      dosage: '1 comprimido a noite, conforme necessidade',
+      duration: '7 dias',
+      quantity: '10 comprimidos',
+      quantityText: '10 (dez) comprimidos',
+      indication: 'Ansiedade e espasmos musculares',
+      type: 'controlled' as const,
+      isControlled: true,
+      controlledType: 'benzodiazepínico'
+    }
+  ];
 
   return (
     <AppLayout>
-      <div className="flex flex-col h-[calc(100vh-4rem)]">
+      <div className="flex flex-col h-full bg-gray-50/50">
+        {/* Header Fixo com Glassmorphism Refinado */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full border-b border-gray-300 bg-gradient-to-r from-gray-50 to-white py-4 px-4 shadow-sm"
+          className="flex-none z-20 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 sticky top-0 shadow-sm"
         >
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/patients')}
-                className="h-10 w-10 hover:bg-gray-100 text-gray-700"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+          <div className="w-full py-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/patients')}
+                  className="h-10 w-10 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
 
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center shadow-lg">
-                  <User className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-gray-900">{selectedPatient?.name}</h1>
-                  <p className="text-sm text-gray-600">
-                    {selectedPatient?.age ? `${selectedPatient.age} anos` : ''}
-                    {selectedPatient?.gender ? ` • ${selectedPatient.gender}` : ''}
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Avatar className="h-12 w-12 border-2 border-white shadow-md">
+                      <AvatarImage src={getPatientAvatar(selectedPatient?.name || '')} alt={selectedPatient?.name} className="object-cover" />
+                      <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                        {selectedPatient?.name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-white shadow-sm"></div>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900 leading-tight tracking-tight">{selectedPatient?.name}</h1>
+                    <div className="flex items-center gap-3 text-sm text-gray-500 mt-0.5">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {selectedPatient?.age ? `${selectedPatient.age} anos` : ''}
+                      </span>
+                      <Separator orientation="vertical" className="h-3 bg-gray-300" />
+                      <span>{selectedPatient?.gender || ''}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-3">
-              {!isListening && currentConsultation.transcript && !showNoteSection && (
-                <motion.div
-                  initial={{ scale: 1 }}
-                  animate={noteGenerated ? { scale: [1, 1.05, 1] } : { scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Button
-                    onClick={handleGenerateNote}
-                    disabled={isGeneratingNote}
-                    size="sm"
-                    className={cn(
-                      "h-10 text-white hover:opacity-90 shadow-md transition-all",
-                      noteGenerated
-                        ? 'bg-gradient-to-r from-green-500 to-green-600'
-                        : 'bg-gradient-to-r from-[#FFC400] to-[#FF9500]'
-                    )}
+              <div className="flex items-center gap-3">
+                {!isListening && currentConsultation.transcript && !showNoteSection && (
+                  <motion.div
+                    initial={{ scale: 1 }}
+                    animate={noteGenerated ? { scale: [1, 1.05, 1] } : { scale: 1 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    {isGeneratingNote ? (
-                      <>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="mr-2"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </motion.div>
-                        Gerando...
-                      </>
-                    ) : noteGenerated ? (
-                      <>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Nota Gerada!
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="mr-2 h-4 w-4" />
-                        Gerar Nota Clínica
-                      </>
-                    )}
-                  </Button>
-                </motion.div>
-              )}
-
-              <Button
-                onClick={handleToggleListen}
-                size="sm"
-                className={`h-10 shadow-md transition-all text-white ${isListening
-                  ? 'bg-gradient-to-r from-red-500 to-red-600 hover:opacity-90'
-                  : 'bg-gradient-to-r from-[#8C00FF] to-[#450693] hover:opacity-90'
-                  }`}
-              >
-                {isListening ? (
-                  <>
-                    <MicOff className="mr-2 h-4 w-4" />
-                    Parar Gravação
-                  </>
-                ) : (
-                  <>
-                    <Mic className="mr-2 h-4 w-4" />
-                    Escutar Consulta
-                  </>
+                    <Button
+                      onClick={handleGenerateNote}
+                      disabled={isGeneratingNote}
+                      size="sm"
+                      className={cn(
+                        "h-10 px-5 text-white shadow-md transition-all font-medium rounded-full",
+                        noteGenerated
+                          ? 'bg-green-600 hover:bg-green-700 ring-2 ring-green-200'
+                          : 'bg-amber-500 hover:bg-amber-600 text-white ring-2 ring-amber-200'
+                      )}
+                    >
+                      {isGeneratingNote ? (
+                        <>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="mr-2"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </motion.div>
+                          Gerando Nota...
+                        </>
+                      ) : noteGenerated ? (
+                        <>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Nota Gerada
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Gerar Nota Clínica
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
                 )}
-              </Button>
-            </div>
-          </div>
-        </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="max-w-7xl mx-auto w-full px-4 py-4"
-        >
-          <div className="flex flex-wrap gap-2 bg-gray-100 rounded-xl p-1.5 shadow-sm border border-gray-200">
-            {[
-              { id: 'ai', label: 'Copilot', icon: Brain },
-              ...(appContext === 'psychology' ? [
-                { id: 'summary', label: 'Resumo da Sessão', icon: Clock },
-              ] : []),
-              { id: 'diagnosis', label: appContext === 'psychology' ? 'Hipóteses Clínicas' : 'Hipóteses Diagnósticas', icon: Lightbulb },
-              ...(appContext === 'medical' ? [
-                { id: 'medication', label: 'Medicação Sugerida', icon: Pill },
-                { id: 'prescription', label: 'Receita Médica', icon: FileCheck },
-              ] : []),
-              ...(appContext === 'psychology' ? [
-                { id: 'themes', label: 'Temas e Metas', icon: Target },
-                { id: 'interventions', label: 'Intervenções', icon: Heart },
-              ] : []),
-            ].map((tab) => {
-              const Icon = tab.icon;
-              return (
                 <Button
-                  key={tab.id}
-                  variant="ghost"
+                  onClick={handleToggleListen}
                   size="sm"
                   className={cn(
-                    "flex-1 min-w-[120px] h-10 transition-all font-medium",
-                    activeTab === tab.id
-                      ? 'bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white shadow-md hover:opacity-90'
-                      : 'text-gray-700 hover:bg-gray-200'
+                    "h-10 px-6 shadow-md transition-all font-medium rounded-full",
+                    isListening
+                      ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse ring-4 ring-red-100'
+                      : 'bg-primary hover:bg-primary/90 text-white ring-4 ring-primary/10'
                   )}
-                  onClick={() => setActiveTab(tab.id as any)}
                 >
-                  <Icon className="mr-2 h-4 w-4" />
-                  <span>{tab.label}</span>
+                  {isListening ? (
+                    <>
+                      <MicOff className="mr-2 h-4 w-4" />
+                      Parar Gravação
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="mr-2 h-4 w-4" />
+                      Iniciar Consulta
+                    </>
+                  )}
                 </Button>
-              );
-            })}
+              </div>
+            </div>
           </div>
         </motion.div>
 
-        <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full px-4 pb-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex-1"
-          >
-            <Card className="flex-1 border-0 shadow-lg h-full">
-              <CardContent className="p-6 h-full">
-                <ScrollArea className="h-full">
-                  {activeTab === 'ai' && (
-                    <AIChatPanel
-                      transcript={currentConsultation.transcript || ''}
-                      patientData={selectedPatient}
-                      isActive={isListening}
-                    />
-                  )}
-
-                  {activeTab === 'medication' && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#FF3F7F] to-[#FF1654] flex items-center justify-center">
-                          <Pill className="h-5 w-5 text-white" />
+        {/* Conteúdo Principal com Tabs Modernas */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="h-full w-full py-6">
+            <Tabs
+              defaultValue="ai"
+              value={activeTab}
+              onValueChange={(val) => setActiveTab(val as any)}
+              className="h-full flex flex-col gap-6"
+            >
+              <div className="flex-none">
+                <TabsList className="w-full justify-start h-14 p-1.5 bg-white/50 backdrop-blur-sm border border-gray-200/60 rounded-2xl shadow-sm overflow-x-auto">
+                  {[
+                    { id: 'ai', label: 'Copilot IA', icon: Brain, description: 'Assistente em tempo real' },
+                    ...(appContext === 'psychology' ? [
+                      { id: 'summary', label: 'Resumo', icon: Clock, description: 'Pontos chave' },
+                    ] : []),
+                    { id: 'diagnosis', label: appContext === 'psychology' ? 'Hipóteses' : 'Diagnóstico', icon: Lightbulb, description: 'Análise clínica' },
+                    ...(appContext === 'medical' ? [
+                      { id: 'medication', label: 'Medicação', icon: Pill, description: 'Sugestões' },
+                      { id: 'prescription', label: 'Receita', icon: FileCheck, description: 'Documentos' },
+                    ] : []),
+                    ...(appContext === 'psychology' ? [
+                      { id: 'themes', label: 'Temas', icon: Target, description: 'Focos terapêuticos' },
+                      { id: 'interventions', label: 'Intervenções', icon: Heart, description: 'Plano de ação' },
+                    ] : []),
+                  ].map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <TabsTrigger
+                        key={tab.id}
+                        value={tab.id}
+                        className={cn(
+                          "flex-1 min-w-[140px] h-full rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-md border border-transparent data-[state=active]:border-gray-100",
+                          !isActive && "hover:bg-white/40 hover:text-gray-700"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "p-2 rounded-lg transition-colors",
+                            isActive ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-500"
+                          )}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="text-left">
+                            <div className="font-semibold leading-none mb-1">{tab.label}</div>
+                            <div className="text-[10px] text-gray-400 font-normal hidden sm:block">{tab.description}</div>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-bold text-lg text-gray-900">Medicação Sugerida</h3>
-                          <p className="text-sm text-gray-600">Prescrições baseadas no diagnóstico</p>
-                        </div>
-                      </div>
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </div>
 
-                      <div className="space-y-3">
-                        {suggestedMedications.map((med, idx) => (
-                          <motion.div
-                            key={idx}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                          >
-                            <MedicationCard med={med} idx={idx} />
-                          </motion.div>
-                        ))}
+              <div className="flex-1 overflow-hidden relative rounded-3xl border border-gray-200 bg-white shadow-xl shadow-gray-100/50">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className="h-full"
+                  >
+                    <TabsContent value="ai" className="h-full m-0 p-0 border-0">
+                      <AIChatPanel
+                        transcript={currentConsultation.transcript || ''}
+                        patientData={selectedPatient}
+                        isActive={isListening}
+                      />
+                    </TabsContent>
 
-                        <Card className="border-0 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-md mt-6">
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                              <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-                                <AlertTriangle className="h-4 w-4 text-white" />
-                              </div>
-                              <div>
-                                <h4 className="font-bold text-gray-900 mb-2">Orientações Importantes</h4>
-                                <ul className="space-y-1 text-sm text-gray-700">
-                                  <li className="flex items-start gap-2">
-                                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                    <span>Verificar alergias medicamentosas antes de prescrever</span>
-                                  </li>
-                                  <li className="flex items-start gap-2">
-                                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                    <span>Orientar sobre hidratação adequada (2-3L/dia)</span>
-                                  </li>
-                                  <li className="flex items-start gap-2">
-                                    <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                    <span>Repouso relativo durante o tratamento</span>
-                                  </li>
-                                  <li className="flex items-start gap-2">
-                                    <XCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                                    <span>Retornar se sintomas piorarem ou não melhorarem em 3-5 dias</span>
-                                  </li>
-                                </ul>
-                              </div>
+                    <TabsContent value="medication" className="h-full m-0 overflow-auto">
+                      <ScrollArea className="h-full">
+                        <div className="p-6 sm:p-8">
+                          <div className="flex items-center gap-4 mb-8">
+                            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center shadow-lg shadow-pink-500/20 ring-4 ring-pink-50">
+                              <Pill className="h-7 w-7 text-white" />
                             </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-                  )}
+                            <div>
+                              <h3 className="font-bold text-2xl text-gray-900">Medicação Sugerida</h3>
+                              <p className="text-gray-500">Prescrições baseadas nas hipóteses diagnósticas e diretrizes atuais.</p>
+                            </div>
+                          </div>
 
-                  {activeTab === 'diagnosis' && appContext === 'medical' && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#FFC400] to-[#FF9500] flex items-center justify-center">
-                          <Lightbulb className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-lg text-gray-900">Hipóteses Diagnósticas</h3>
-                          <p className="text-sm text-gray-600">Análise baseada em evidências clínicas</p>
-                        </div>
-                      </div>
+                          <div className="grid gap-4">
+                            {suggestedMedications.map((med, idx) => (
+                              <motion.div
+                                key={idx}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.1 }}
+                              >
+                                <MedicationCard med={med} idx={idx} />
+                              </motion.div>
+                            ))}
 
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 mb-3">
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          <h4 className="font-bold text-gray-900">Mais Prováveis</h4>
-                        </div>
-
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 }}
-                        >
-                          <Card className="border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md">
-                            <CardContent className="p-5">
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                                    <CheckCircle2 className="h-6 w-6 text-white" />
+                            <Card className="border-0 bg-gradient-to-br from-blue-50 to-indigo-50/50 shadow-sm mt-6 overflow-hidden">
+                              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                              <CardContent className="p-6">
+                                <div className="flex items-start gap-4">
+                                  <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                                    <AlertTriangle className="h-5 w-5" />
                                   </div>
                                   <div>
-                                    <h5 className="font-bold text-lg text-gray-900">Faringite Viral Aguda</h5>
-                                    <div className="flex items-center gap-2 mt-1">
-                                      <Badge className="bg-green-500 text-white text-xs">Alta Probabilidade</Badge>
-                                      <Badge className="bg-blue-500 text-white text-xs">Baixa Gravidade</Badge>
-                                    </div>
+                                    <h4 className="font-bold text-gray-900 mb-3 text-lg">Orientações Importantes</h4>
+                                    <ul className="grid sm:grid-cols-2 gap-3">
+                                      <li className="flex items-center gap-2 text-sm text-gray-700 bg-white/60 p-2 rounded-lg">
+                                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                        <span>Verificar alergias medicamentosas</span>
+                                      </li>
+                                      <li className="flex items-center gap-2 text-sm text-gray-700 bg-white/60 p-2 rounded-lg">
+                                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                        <span>Orientar hidratação (2-3L/dia)</span>
+                                      </li>
+                                      <li className="flex items-center gap-2 text-sm text-gray-700 bg-white/60 p-2 rounded-lg">
+                                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                        <span>Repouso relativo</span>
+                                      </li>
+                                      <li className="flex items-center gap-2 text-sm text-gray-700 bg-white/60 p-2 rounded-lg">
+                                        <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                                        <span>Retornar se piora em 3-5 dias</span>
+                                      </li>
+                                    </ul>
                                   </div>
                                 </div>
-                              </div>
-
-                              <div className="space-y-3 mt-4">
-                                <div className="bg-white rounded-lg p-4 border border-green-200">
-                                  <h6 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                    <Brain className="h-4 w-4 text-green-600" />
-                                    Explicação
-                                  </h6>
-                                  <p className="text-sm text-gray-700">
-                                    Inflamação da faringe causada por vírus, sendo o quadro clínico consistente com sintomas virais como dor de garganta, febre baixa e ausência de sinais bacterianos.
-                                  </p>
-                                </div>
-
-                                <div className="bg-white rounded-lg p-4 border border-green-200">
-                                  <h6 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                    <FileText className="h-4 w-4 text-green-600" />
-                                    Base Científica
-                                  </h6>
-                                  <ul className="space-y-2">
-                                    <li className="text-sm text-gray-700 flex items-start gap-2">
-                                      <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                      <span>Dor de garganta + febre baixa + quadro viral típico</span>
-                                    </li>
-                                    <li className="text-sm text-gray-700 flex items-start gap-2">
-                                      <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                      <span>Score de Centor ≤2, sem sinais bacterianos marcantes</span>
-                                    </li>
-                                    <li className="text-sm text-gray-700 flex items-start gap-2">
-                                      <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                      <span>Evolução autolimitada comum em infecções virais</span>
-                                    </li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'prescription' && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center">
-                            <FileCheck className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-lg text-gray-900">Receita Médica</h3>
-                            <p className="text-sm text-gray-600">Prescrição profissional para o paciente</p>
+                              </CardContent>
+                            </Card>
                           </div>
                         </div>
+                      </ScrollArea>
+                    </TabsContent>
 
-                        {!prescriptionGenerated && (
-                          <Button
-                            onClick={() => setPrescriptionGenerated(true)}
-                            className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white hover:opacity-90 shadow-md"
-                          >
-                            <FileCheck className="mr-2 h-4 w-4" />
-                            Gerar Receita
-                          </Button>
-                        )}
-                      </div>
-
-                      {!prescriptionGenerated ? (
-                        <Card className="border-0 bg-gradient-to-br from-gray-50 to-gray-100 shadow-md">
-                          <CardContent className="p-12 text-center">
-                            <div className="relative mb-6">
-                              <div className="absolute inset-0 bg-gradient-to-br from-[#8C00FF] to-[#450693] rounded-full blur-2xl opacity-20 animate-pulse"></div>
-                              <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center mx-auto shadow-xl">
-                                <FileCheck className="h-12 w-12 text-white" />
-                              </div>
-                            </div>
-                            <h4 className="text-xl font-bold text-gray-900 mb-2">Receita Médica</h4>
-                            <p className="text-gray-600 mb-6">
-                              Clique no botão acima para gerar automaticamente uma receita médica profissional baseada nas medicações sugeridas.
-                            </p>
-                            <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-                              <CheckCircle2 className="h-4 w-4 text-green-600" />
-                              <span>Geração automática com base nas medicações selecionadas</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ) : (
-                        <div className="space-y-4">
-                          {suggestedMedications.some(med => med.isControlled) && (
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                              <div className="flex items-start gap-3">
-                                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <TabsContent value="diagnosis" className="h-full m-0 overflow-auto">
+                      <ScrollArea className="h-full">
+                        <div className="p-6 sm:p-8">
+                          {appContext === 'medical' ? (
+                            <>
+                              <div className="flex items-center gap-4 mb-8">
+                                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20 ring-4 ring-amber-50">
+                                  <Lightbulb className="h-7 w-7 text-white" />
+                                </div>
                                 <div>
-                                  <p className="font-medium text-yellow-800">Aviso Importante</p>
-                                  <p className="text-sm text-yellow-700 mt-1">
-                                    Esta consulta contém medicamentos controlados. Serão geradas receitas separadas:
-                                    uma para medicamentos comuns e outra para medicamentos sujeitos a controle especial.
-                                  </p>
+                                  <h3 className="font-bold text-2xl text-gray-900">Hipóteses Diagnósticas</h3>
+                                  <p className="text-gray-500">Análise diferencial baseada em evidências clínicas.</p>
                                 </div>
                               </div>
-                            </div>
-                          )}
 
-                          {suggestedMedications.filter(med => !med.isControlled).length > 0 && (
-                            <Card className="border-0 shadow-lg bg-white">
-                              <CardContent className="p-8">
-                                <div className="border-b-2 border-[#8C00FF] pb-6 mb-6">
-                                  <div className="flex items-start justify-between">
-                                    <div>
-                                      <h2 className="text-2xl font-bold text-gray-900 mb-2">Dr. {doctorName}</h2>
-                                      <p className="text-sm text-gray-700 font-medium">{doctorSpecialty}</p>
-                                      <p className="text-sm text-gray-700">CRM-{uf} {crm}</p>
-                                      <p className="text-sm text-gray-600">RQE 00000 – Clínica Médica</p>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="text-sm font-semibold text-gray-900">RECEITA MÉDICA</p>
-                                      <p className="text-sm text-gray-600 mt-2">Data: {new Date().toLocaleDateString('pt-BR')}</p>
-                                      <p className="text-sm text-gray-600">Hora: {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
-                                    </div>
-                                  </div>
+                              <div className="space-y-6">
+                                <div className="flex items-center gap-2 mb-4">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-3 py-1">
+                                    <Target className="h-3 w-3 mr-1" />
+                                    Diagnóstico Principal
+                                  </Badge>
                                 </div>
 
-                                <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
-                                  <h3 className="font-bold text-gray-900 mb-3">Dados do Paciente</h3>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div className="col-span-2">
-                                      <p className="text-xs text-gray-600">Nome Completo</p>
-                                      <p className="text-sm font-semibold text-gray-900">{selectedPatient?.name}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-gray-600">CPF</p>
-                                      <p className="text-sm font-semibold text-gray-900">***.***.***-**</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-gray-600">Idade</p>
-                                      <p className="text-sm font-semibold text-gray-900">{selectedPatient?.age} anos</p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="mb-6">
-                                  <div className="flex items-center justify-between gap-2 mb-4">
-                                    <div className="flex items-center gap-2">
-                                      <Pill className="h-5 w-5 text-[#8C00FF]" />
-                                      <h3 className="font-bold text-lg text-gray-900">Prescrição</h3>
-                                    </div>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="border-[#8C00FF] text-[#8C00FF] hover:bg-[#8C00FF]/10"
-                                      onClick={() => {
-                                        const newMed = {
-                                          id: Date.now(),
-                                          name: '',
-                                          concentration: '',
-                                          form: 'comprimidos',
-                                          via: 'VO (via oral)',
-                                          dosage: '',
-                                          duration: '',
-                                          quantity: '',
-                                          quantityText: '',
-                                          indication: '',
-                                          isControlled: false
-                                        };
-                                        setPrescriptionMedications(prev => [...prev, newMed]);
-                                      }}
-                                    >
-                                      + Adicionar Medicamento
-                                    </Button>
-                                  </div>
-
-                                  <div className="space-y-4">
-                                    {prescriptionMedications.map((med, idx) => (
-                                      <PrescriptionMedicationCard
-                                        key={med.id}
-                                        med={med}
-                                        idx={idx}
-                                        onEdit={(updatedMed) => {
-                                          setPrescriptionMedications(prev =>
-                                            prev.map((m, i) => i === idx ? { ...m, ...updatedMed } : m)
-                                          );
-                                        }}
-                                        onDelete={() => {
-                                          setPrescriptionMedications(prev =>
-                                            prev.filter((_m, i) => i !== idx)
-                                          );
-                                        }}
-                                      />
-                                    ))}
-                                  </div>
-
-                                  {prescriptionMedications.length === 0 && (
-                                    <div className="text-center py-8 text-gray-500">
-                                      Nenhum medicamento adicionado. Clique em "Adicionar Medicamento" para começar.
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="border-t-2 border-gray-200 pt-6 space-y-6">
-                                  <div className="flex justify-between items-end">
-                                    <div>
-                                      <p className="text-sm font-semibold text-gray-900">
-                                        Validade: 30 dias a partir da data de emissão
-                                      </p>
-                                    </div>
-                                    <div className="text-center">
-                                      <div className="mb-12"></div>
-                                      <div className="border-t-2 border-gray-900 w-72 mb-2"></div>
-                                      <p className="font-bold text-gray-900 text-sm">{doctorName}</p>
-                                      <p className="text-sm text-gray-700">CRM-{uf} {crm}</p>
-                                    </div>
-                                  </div>
-
-                                  <div className="border-t border-gray-300 pt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                    <div className="space-y-2">
-                                      <p className="text-xs text-gray-600 leading-relaxed">
-                                        <span className="font-semibold text-gray-900">Médico:</span>
-                                        <span className="ml-1">{doctorName}</span>
-                                      </p>
-                                      <p className="text-xs text-gray-600 leading-relaxed">
-                                        <span className="font-semibold text-gray-900">CRM:</span>
-                                        <span className="ml-1">CRM-{uf} {crm}</span>
-                                      </p>
-                                      <p className="text-xs text-gray-600 leading-relaxed">
-                                        <span className="font-semibold text-gray-900">Data e hora da assinatura:</span>
-                                        <span className="ml-1">{new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                                      </p>
-                                      <p className="text-xs text-gray-600 leading-relaxed">
-                                        <span className="font-semibold text-gray-900">Tipo de certificado:</span>
-                                        <span className="ml-1">ICP-Brasil {signatureType.toUpperCase().replace('ICP-BRASIL-', '')}</span>
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex justify-between items-start pt-4">
-                                    <div>
-                                      <p className="text-xs font-semibold text-gray-700">ID da receita:</p>
-                                      <p className="text-sm font-mono text-gray-900">RX-2025-00001234</p>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                      <div className="w-20 h-20 bg-white p-2 border border-gray-300 rounded">
-                                        <PrescriptionQRCode prescriptionId="RX-2025-00001234" />
+                                <Card className="border-0 ring-1 ring-green-100 bg-gradient-to-br from-green-50/50 to-emerald-50/30 shadow-lg hover:shadow-xl transition-all duration-300">
+                                  <CardContent className="p-6">
+                                    <div className="flex items-start justify-between mb-6">
+                                      <div className="flex items-center gap-4">
+                                        <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/20 text-white">
+                                          <Stethoscope className="h-8 w-8" />
+                                        </div>
+                                        <div>
+                                          <h5 className="font-bold text-2xl text-gray-900">Faringite Viral Aguda</h5>
+                                          <div className="flex items-center gap-2 mt-2">
+                                            <Badge className="bg-green-500 hover:bg-green-600 text-white border-0 shadow-sm">Alta Probabilidade</Badge>
+                                            <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50">Baixa Gravidade</Badge>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-3xl font-bold text-green-600">92%</div>
+                                        <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Confiança</div>
                                       </div>
                                     </div>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
+
+                                    <Separator className="my-6 bg-green-100" />
+
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                      <div className="bg-white rounded-xl p-5 border border-green-100 shadow-sm">
+                                        <h6 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                          <Activity className="h-4 w-4 text-green-600" />
+                                          Evidências Clínicas
+                                        </h6>
+                                        <ul className="space-y-2">
+                                          <li className="flex items-center gap-2 text-sm text-gray-600">
+                                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                            <span>Hiperemia e edema faríngeo</span>
+                                          </li>
+                                          <li className="flex items-center gap-2 text-sm text-gray-600">
+                                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                            <span>Ausência de exsudato purulento</span>
+                                          </li>
+                                          <li className="flex items-center gap-2 text-sm text-gray-600">
+                                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                            <span>Febre baixa associada</span>
+                                          </li>
+                                        </ul>
+                                      </div>
+
+                                      <div className="bg-white rounded-xl p-5 border border-green-100 shadow-sm">
+                                        <h6 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                          <Brain className="h-4 w-4 text-green-600" />
+                                          Raciocínio Clínico
+                                        </h6>
+                                        <p className="text-sm text-gray-600 leading-relaxed">
+                                          O quadro clínico é consistente com etiologia viral. A ausência de placas e a presença de sintomas sistêmicos leves afastam a hipótese bacteriana primária.
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </div>
+                            </>
+                          ) : (
+                            <PsychologyClinicalHypothesis patientName={selectedPatient?.name || ''} />
                           )}
-
-                          {suggestedMedications.some(med => med.isControlled) && (
-                            <Card className="border-0 shadow-lg bg-white border-2 border-red-600">
-                              <CardContent className="p-8">
-                                <div className="border-b-2 border-red-600 pb-6 mb-6">
-                                  <div className="flex items-start justify-between">
-                                    <div>
-                                      <h2 className="text-2xl font-bold text-gray-900 mb-2">{doctorName}</h2>
-                                      <p className="text-sm text-gray-700 font-medium">{doctorSpecialty}</p>
-                                      <p className="text-sm text-gray-700">CRM-{uf} {crm}</p>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="text-lg font-bold text-red-600">NOTIFICAÇÃO DE RECEITA</p>
-                                      <p className="text-sm text-red-600 font-medium mt-1">Psicotrópicos</p>
-                                      <p className="text-sm text-gray-600 mt-2">Data: {new Date().toLocaleDateString('pt-BR')}</p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="mb-6">
-                                  <div className="flex items-center gap-2 mb-4">
-                                    <div className="h-5 w-5 bg-red-600 rounded flex items-center justify-center">
-                                      <Pill className="h-3 w-3 text-white" />
-                                    </div>
-                                    <h3 className="font-bold text-lg text-red-700">Prescrição de Medicamento Controlado</h3>
-                                  </div>
-
-                                  <div className="space-y-4">
-                                    {suggestedMedications
-                                      .filter(med => med.isControlled)
-                                      .map((med, idx) => (
-                                        <ControlledMedicationCard key={idx} med={med} idx={idx} />
-                                      ))}
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-
-                          <div className="flex gap-3">
-                            <Button
-                              className="flex-1 bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white hover:opacity-90 shadow-md"
-                              onClick={() => window.print()}
-                            >
-                              <Printer className="mr-2 h-4 w-4" />
-                              Imprimir Receitas
-                            </Button>
-                            <Button
-                              className="flex-1 bg-gradient-to-r from-[#FF3F7F] to-[#FF1654] text-white hover:opacity-90 shadow-md"
-                            >
-                              <Download className="mr-2 h-4 w-4" />
-                              Baixar PDF
-                            </Button>
-                          </div>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </ScrollArea>
+                    </TabsContent>
 
-                  {activeTab === 'themes' && (
-                    <SessionThemesAndGoals patientName={selectedPatient?.name || ''} />
-                  )}
+                    <TabsContent value="prescription" className="h-full m-0 overflow-auto">
+                      <ScrollArea className="h-full">
+                        <div className="p-6 sm:p-8">
+                          <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-4">
+                              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center shadow-lg shadow-violet-600/20 ring-4 ring-violet-50">
+                                <FileCheck className="h-7 w-7 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="font-bold text-2xl text-gray-900">Receita Médica</h3>
+                                <p className="text-gray-500">Geração, assinatura digital e envio.</p>
+                              </div>
+                            </div>
+                            {!prescriptionGenerated && (
+                              <Button
+                                onClick={() => setPrescriptionGenerated(true)}
+                                className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/20 rounded-full px-6 h-11"
+                              >
+                                <FileCheck className="mr-2 h-4 w-4" />
+                                Gerar Receita Digital
+                              </Button>
+                            )}
+                          </div>
 
-                  {activeTab === 'interventions' && (
-                    <TherapeuticInterventions patientName={selectedPatient?.name || ''} />
-                  )}
+                          {!prescriptionGenerated ? (
+                            <Card className="border-2 border-dashed border-gray-200 bg-gray-50/50">
+                              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                                <div className="h-20 w-20 rounded-full bg-white shadow-sm flex items-center justify-center mb-6 ring-8 ring-gray-100">
+                                  <FileCheck className="h-10 w-10 text-gray-300" />
+                                </div>
+                                <h4 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma receita gerada</h4>
+                                <p className="text-gray-500 max-w-md mb-8 leading-relaxed">
+                                  O sistema pode gerar uma receita automaticamente com base nas medicações sugeridas e aprovadas por você.
+                                </p>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setPrescriptionGenerated(true)}
+                                  className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-300"
+                                >
+                                  Gerar Agora
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <Card className="border-0 shadow-2xl bg-white overflow-hidden max-w-3xl mx-auto ring-1 ring-gray-200">
+                                <div className="h-3 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600"></div>
+                                <CardContent className="p-12">
+                                  <div className="text-center py-12">
+                                    <div className="h-16 w-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                      <CheckCircle2 className="h-8 w-8" />
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Receita Gerada com Sucesso</h3>
+                                    <p className="text-gray-500 mb-8">A receita foi assinada digitalmente e está pronta para envio.</p>
 
-                  {activeTab === 'diagnosis' && appContext === 'psychology' && (
-                    <PsychologyClinicalHypothesis patientName={selectedPatient?.name || ''} />
-                  )}
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+                                    <div className="flex justify-center gap-4">
+                                      <Button variant="outline" className="w-40">Visualizar PDF</Button>
+                                      <Button className="w-40 bg-violet-600 hover:bg-violet-700">Enviar por SMS</Button>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </motion.div>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </TabsContent>
 
-        {showSignatureModal && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <div className="bg-white p-4 rounded">
-              Signature Modal Debug
-              <button onClick={() => setShowSignatureModal(false)}>Close</button>
-            </div>
+                    {appContext === 'psychology' && (
+                      <>
+                        <TabsContent value="summary" className="h-full m-0 overflow-auto">
+                          <ScrollArea className="h-full"><div className="p-8">Resumo da Sessão...</div></ScrollArea>
+                        </TabsContent>
+                        <TabsContent value="themes" className="h-full m-0 overflow-auto">
+                          <ScrollArea className="h-full"><div className="p-8"><SessionThemesAndGoals patientName={selectedPatient?.name || ''} /></div></ScrollArea>
+                        </TabsContent>
+                        <TabsContent value="interventions" className="h-full m-0 overflow-auto">
+                          <ScrollArea className="h-full"><div className="p-8"><TherapeuticInterventions patientName={selectedPatient?.name || ''} /></div></ScrollArea>
+                        </TabsContent>
+                      </>
+                    )}
+
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </Tabs>
           </div>
-        )}
-
-        <AnimatePresence>
-          {showNoteSection && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-              onClick={() => setShowNoteSection(false)}
-            >
-              <div className="bg-white p-4 rounded">Debug</div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </div>
       </div>
     </AppLayout>
   );
 }
+

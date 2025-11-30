@@ -31,8 +31,6 @@ const diagnoses = [
   'Lombalgia',
   'Faringite Aguda',
   'Rinite Alérgica',
-  'Ansiedade Generalizada',
-  'Depressão Leve',
   'Infecção do Trato Urinário',
   'Dermatite Atópica',
   'Artrose de Joelho',

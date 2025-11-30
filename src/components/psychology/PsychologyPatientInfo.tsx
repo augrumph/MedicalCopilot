@@ -1,8 +1,9 @@
 import { Brain, Target, AlertTriangle, Pill, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Patient } from '@/lib/types';
+import { getPatientAvatar } from '@/lib/utils';
 
 interface PsychologyPatientInfoProps {
   patient: Patient;
@@ -37,6 +38,7 @@ export function PsychologyPatientInfo({ patient }: PsychologyPatientInfoProps) {
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 border-2 border-primary/20">
+              <AvatarImage src={getPatientAvatar(patient.name)} alt={patient.name} className="object-cover" />
               <AvatarFallback className="bg-[#8C00FF] text-white text-xl font-bold">
                 {patient.name.charAt(0).toUpperCase()}
               </AvatarFallback>

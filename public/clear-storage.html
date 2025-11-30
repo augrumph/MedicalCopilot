@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpar Cache - Medical Copilot</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 0.5rem;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        .success {
+            background: #10b981;
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            display: none;
+        }
+        h1 { margin-bottom: 1rem; }
+        p { margin-bottom: 2rem; opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpar Cache do Medical Copilot</h1>
+        <p>Clique no botão abaixo para limpar completamente o cache local</p>
+
+        <button onclick="clearEverything()">Limpar Tudo</button>
+        <button onclick="goToApp()">Voltar ao App</button>
+
+        <div class="success" id="success">
+            ✅ Cache limpo com sucesso! Você pode voltar ao app agora.
+        </div>
+    </div>
+
+    <script>
+        function clearEverything() {
+            try {
+                // Limpar localStorage
+                localStorage.clear();
+
+                // Limpar sessionStorage
+                sessionStorage.clear();
+
+                // Limpar cookies
+                document.cookie.split(";").forEach(function(c) {
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                });
+
+                // Limpar IndexedDB
+                if (window.indexedDB) {
+                    indexedDB.databases().then(dbs => {
+                        dbs.forEach(db => {
+                            indexedDB.deleteDatabase(db.name);
+                        });
+                    });
+                }
+
+                // Mostrar sucesso
+                document.getElementById('success').style.display = 'block';
+
+                console.log('✅ Cache limpo com sucesso!');
+            } catch (e) {
+                console.error('Erro ao limpar cache:', e);
+                alert('Erro ao limpar cache. Tente limpar manualmente pelo navegador.');
+            }
+        }
+
+        function goToApp() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

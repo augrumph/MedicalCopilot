@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bot, Sparkles, AlertCircle, Lightbulb, MessageSquare } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface AIMessage {
   id: string;
@@ -19,6 +19,8 @@ interface AIChatPanelProps {
   isActive: boolean;
 }
 
+const MAX_MESSAGES = 20; // Limitar mensagens para performance
+
 export function AIChatPanel({ transcript, patientData, isActive }: AIChatPanelProps) {
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -27,9 +29,9 @@ export function AIChatPanel({ transcript, patientData, isActive }: AIChatPanelPr
   // Scroll automático para última mensagem
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+      scrollRef.current.scrollIntoView({ behavior: 'auto' }); // Changed to 'auto' for performance
     }
-  }, [messages]);
+  }, [messages.length, isThinking]); // Only depend on length, not full array
 
   // Simular análise de IA quando a transcrição muda
   useEffect(() => {
@@ -224,13 +226,16 @@ export function AIChatPanel({ transcript, patientData, isActive }: AIChatPanelPr
         });
       }
 
-      // Filtrar mensagens duplicadas
-      const uniqueMessages = newMessages.filter(msg =>
-        !messages.some(existing => existing.content === msg.content)
-      );
+      // Filtrar mensagens duplicadas usando Set para melhor performance
+      const existingContents = new Set(messages.map(m => m.content));
+      const uniqueMessages = newMessages.filter(msg => !existingContents.has(msg.content));
 
       if (uniqueMessages.length > 0) {
-        setMessages(prev => [...prev, ...uniqueMessages]);
+        setMessages(prev => {
+          const updated = [...prev, ...uniqueMessages];
+          // Limitar a MAX_MESSAGES mensagens mais recentes
+          return updated.length > MAX_MESSAGES ? updated.slice(-MAX_MESSAGES) : updated;
+        });
       }
 
       setIsThinking(false);
@@ -252,121 +257,180 @@ export function AIChatPanel({ transcript, patientData, isActive }: AIChatPanelPr
     }
   };
 
-  const getMessageColor = (type: AIMessage['type']) => {
+  const getMessageStyles = (type: AIMessage['type']) => {
     switch (type) {
       case 'question':
-        return 'bg-gradient-to-br from-[#8C00FF]/10 to-[#450693]/5 border border-[#8C00FF]/30';
+        return {
+          bg: 'bg-violet-50',
+          border: 'border-violet-100',
+          text: 'text-violet-900',
+          iconBg: 'bg-violet-100',
+          iconColor: 'text-violet-600'
+        };
       case 'diagnosis':
-        return 'bg-gradient-to-br from-[#FFC400]/10 to-[#FF9500]/5 border border-[#FFC400]/30';
+        return {
+          bg: 'bg-amber-50',
+          border: 'border-amber-100',
+          text: 'text-amber-900',
+          iconBg: 'bg-amber-100',
+          iconColor: 'text-amber-600'
+        };
       case 'reminder':
-        return 'bg-gradient-to-br from-red-50 to-rose-50 border border-red-200';
+        return {
+          bg: 'bg-rose-50',
+          border: 'border-rose-100',
+          text: 'text-rose-900',
+          iconBg: 'bg-rose-100',
+          iconColor: 'text-rose-600'
+        };
       case 'recommendation':
-        return 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200';
+        return {
+          bg: 'bg-emerald-50',
+          border: 'border-emerald-100',
+          text: 'text-emerald-900',
+          iconBg: 'bg-emerald-100',
+          iconColor: 'text-emerald-600'
+        };
       case 'analysis':
-        return 'bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200';
+        return {
+          bg: 'bg-blue-50',
+          border: 'border-blue-100',
+          text: 'text-blue-900',
+          iconBg: 'bg-blue-100',
+          iconColor: 'text-blue-600'
+        };
     }
   };
 
   const getTypeBadge = (type: AIMessage['type']) => {
     const labels = {
-      question: 'Pergunta',
-      diagnosis: 'Hipótese',
-      reminder: 'Lembrete',
+      question: 'Pergunta Sugerida',
+      diagnosis: 'Hipótese Diagnóstica',
+      reminder: 'Alerta Clínico',
       recommendation: 'Recomendação',
-      analysis: 'Análise'
+      analysis: 'Análise em Tempo Real'
     };
     return labels[type];
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center">
-          <Bot className="h-5 w-5 text-white" />
+    <div className="h-full flex flex-col bg-gray-50/30">
+      <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/20">
+              <Bot className="h-6 w-6 text-white" />
+            </div>
+            {isActive && (
+              <span className="absolute -bottom-1 -right-1 inline-flex rounded-full h-3 w-3 bg-green-500 border-2 border-white"></span>
+            )}
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900 leading-tight">Copilot Médico</h3>
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              {isActive ? (
+                <span className="text-green-600 font-medium">Monitorando consulta...</span>
+              ) : (
+                <span>Aguardando início...</span>
+              )}
+            </p>
+          </div>
         </div>
-        <div className="flex-1">
-          <h3 className="font-bold text-lg text-gray-900">Assistente IA</h3>
-          <p className="text-sm text-gray-600">Análise em tempo real da consulta</p>
-        </div>
-        {isActive && (
-          <Badge className="bg-green-500 text-white shadow-md">
-            <div className="h-2 w-2 rounded-full bg-white mr-2 animate-pulse" />
-            Ativo
-          </Badge>
-        )}
+        <Badge variant="outline" className="bg-white/50">
+          v2.0
+        </Badge>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full pr-4">
-          {messages.length === 0 && !isThinking && (
-            <div className="flex flex-col items-center justify-center h-full text-center py-12">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#8C00FF] to-[#450693] rounded-full blur-2xl opacity-20 animate-pulse"></div>
-                <div className="relative h-20 w-20 rounded-full bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center mb-4 shadow-xl">
-                  <Bot className="h-10 w-10 text-white" />
+      <div className="flex-1 overflow-hidden relative">
+        <ScrollArea className="h-full px-4 py-6">
+          <div className="max-w-3xl mx-auto space-y-6">
+            {messages.length === 0 && !isThinking && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary to-purple-600 rounded-full blur-3xl opacity-10 animate-pulse"></div>
+                  <div className="relative h-24 w-24 rounded-2xl bg-white shadow-xl flex items-center justify-center ring-1 ring-gray-100">
+                    <Bot className="h-12 w-12 text-primary/80" />
+                  </div>
                 </div>
+                <h4 className="text-xl font-semibold text-gray-900 mb-2">
+                  {isActive ? 'Ouvindo a consulta...' : 'Pronto para ajudar'}
+                </h4>
+                <p className="text-gray-500 max-w-sm mx-auto leading-relaxed">
+                  {isActive
+                    ? 'Estou analisando o diálogo em tempo real para fornecer insights clínicos relevantes.'
+                    : 'Inicie a gravação para ativar o assistente de inteligência artificial.'}
+                </p>
               </div>
-              <p className="text-sm text-gray-600">
-                {isActive
-                  ? 'Ouvindo a consulta... Vou ajudar em tempo real.'
-                  : 'Inicie a gravação para ativar o assistente'}
-              </p>
-            </div>
-          )}
+            )}
 
-          <div className="space-y-3">
-            <AnimatePresence>
-              {messages.map((message, idx) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                >
-                  <Card className={`${getMessageColor(message.type)} shadow-md`}>
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+            <AnimatePresence mode="popLayout">
+              {messages.map((message) => {
+                const styles = getMessageStyles(message.type);
+                return (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className={cn(
+                      "group relative rounded-2xl border p-5 shadow-sm transition-all hover:shadow-md",
+                      styles.bg,
+                      styles.border
+                    )}>
+                      <div className="flex items-start gap-4">
+                        <div className={cn(
+                          "h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white",
+                          styles.iconBg,
+                          styles.iconColor
+                        )}>
                           {getMessageIcon(message.type)}
-                          <Badge className="text-xs font-semibold bg-gray-900 text-white">
-                            {getTypeBadge(message.type)}
-                          </Badge>
                         </div>
-                        {message.priority === 'high' && (
-                          <Badge className="text-xs font-semibold bg-red-500 text-white">
-                            Urgente
-                          </Badge>
-                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className={cn("text-xs font-bold uppercase tracking-wider", styles.text)}>
+                              {getTypeBadge(message.type)}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-medium">
+                              {message.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <div className="prose prose-sm max-w-none">
+                            <p className="text-gray-800 leading-relaxed whitespace-pre-line font-medium">
+                              {message.content}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-sm leading-relaxed text-gray-900 whitespace-pre-line">{message.content}</p>
-                      <p className="text-xs text-gray-500">
-                        {message.timestamp.toLocaleTimeString('pt-BR', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                      {message.priority === 'high' && (
+                        <div className="absolute -top-2 -right-2">
+                          <span className="inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-white"></span>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
 
             {isThinking && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center gap-3 text-sm text-gray-600 p-4 bg-gray-50 rounded-lg border border-gray-200"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="flex items-center gap-3 text-sm text-gray-500 p-4 bg-white/50 rounded-xl border border-gray-100 shadow-sm w-fit mx-auto"
               >
-                <div className="flex gap-1">
-                  <div className="h-2 w-2 rounded-full bg-[#8C00FF] animate-bounce" />
-                  <div className="h-2 w-2 rounded-full bg-[#8C00FF] animate-bounce delay-100" />
-                  <div className="h-2 w-2 rounded-full bg-[#8C00FF] animate-bounce delay-200" />
+                <div className="flex gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="font-medium">Analisando consulta...</span>
+                <span className="font-medium">Processando contexto clínico...</span>
               </motion.div>
             )}
 
-            <div ref={scrollRef} />
+            <div ref={scrollRef} className="h-4" />
           </div>
         </ScrollArea>
       </div>

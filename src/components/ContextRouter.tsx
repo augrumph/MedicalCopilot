@@ -2,11 +2,12 @@ import React from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/stores/appStore';
 import DashboardPage from '@/pages/DashboardPage';
-import PatientsPage from '@/pages/PatientsPage';
+import MedicalPatientsPage from '@/pages/MedicalPatientsPage';
 import { ConsultationPage } from '@/pages/ConsultationPage';
 import { SessionDetailsPage } from '@/pages/SessionDetailsPage';
 import { HistoryPage } from '@/pages/HistoryPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { AppointmentPage } from '@/pages/AppointmentPage';
 import LoginPage from '@/pages/LoginPage';
 import ProtectedRoute from '@/ProtectedRoute';
 
@@ -38,7 +39,7 @@ const ContextRouter: React.FC = () => {
         path="/patients"
         element={
           <ProtectedRoute>
-            <PatientsPage />
+            <MedicalPatientsPage />
           </ProtectedRoute>
         }
       />
@@ -67,12 +68,32 @@ const ContextRouter: React.FC = () => {
         }
       />
       <Route
+        path="/patients/:id"
+        element={
+          <ProtectedRoute>
+            <MedicalPatientsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/settings"
         element={
           <ProtectedRoute>
             <SettingsPage />
           </ProtectedRoute>
         }
+      />
+      <Route
+        path="/appointments"
+        element={
+          <ProtectedRoute>
+            <AppointmentPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/scheduling"
+        element={<Navigate to="/appointments" replace />}
       />
     </Routes>
   );

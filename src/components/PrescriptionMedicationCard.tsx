@@ -1,7 +1,12 @@
 import React, { memo, useState } from 'react';
-import { Edit3, Trash2, Save } from 'lucide-react';
+import { Edit3, Trash2, Save, X, Pill, Clock, Calendar, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface PrescriptionMedicationCardProps {
   med: {
@@ -33,9 +38,6 @@ const PrescriptionMedicationCard: React.FC<PrescriptionMedicationCardProps> = ({
   const [editedMed, setEditedMed] = useState({ ...med });
   const isControlled = med.isControlled;
 
-  const bgColor = isControlled ? 'bg-red-50' : 'bg-gray-50';
-  const borderColor = isControlled ? 'border-red-200' : 'border-gray-200';
-
   const handleSave = () => {
     onEdit(editedMed);
     setIsEditing(false);
@@ -43,205 +45,228 @@ const PrescriptionMedicationCard: React.FC<PrescriptionMedicationCardProps> = ({
 
   if (isEditing) {
     return (
-      <div className={`${bgColor} rounded-lg p-3 border ${borderColor} sm:p-4`}>
-        <div className="flex items-start gap-2 sm:gap-3">
-          <div className={`flex-shrink-0 ${isControlled ? 'bg-red-600' : 'bg-[#8C00FF]'} text-white rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-xs sm:text-sm font-bold`}>
-            {idx + 1}
+      <Card className={cn(
+        "shadow-lg border-2",
+        isControlled ? "border-red-100 bg-red-50/30" : "border-primary/20 bg-white"
+      )}>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                "h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold text-white",
+                isControlled ? "bg-red-500" : "bg-primary"
+              )}>
+                {idx + 1}
+              </div>
+              <h4 className="font-semibold text-gray-900">Editar Medicamento</h4>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)} className="h-8 w-8">
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          <div className="flex-1 space-y-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs font-medium text-gray-700">Nome do Medicamento</label>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">Medicamento</Label>
                 <Input
                   value={editedMed.name}
-                  onChange={(e) => setEditedMed({...editedMed, name: e.target.value})}
-                  className="text-xs sm:text-sm p-2"
-                  placeholder="Ex: Paracetamol"
+                  onChange={(e) => setEditedMed({ ...editedMed, name: e.target.value })}
+                  className="bg-white"
+                  placeholder="Nome"
                 />
               </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700">Concentração</label>
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">Concentração</Label>
                 <Input
                   value={editedMed.concentration}
-                  onChange={(e) => setEditedMed({...editedMed, concentration: e.target.value})}
-                  className="text-xs sm:text-sm p-2"
+                  onChange={(e) => setEditedMed({ ...editedMed, concentration: e.target.value })}
+                  className="bg-white"
                   placeholder="Ex: 500mg"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs font-medium text-gray-700">Forma Farmacêutica</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">Forma</Label>
                 <Input
                   value={editedMed.form}
-                  onChange={(e) => setEditedMed({...editedMed, form: e.target.value})}
-                  className="text-xs sm:text-sm p-2"
+                  onChange={(e) => setEditedMed({ ...editedMed, form: e.target.value })}
+                  className="bg-white"
                   placeholder="Ex: comprimidos"
                 />
               </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700">Via de Administração</label>
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">Via</Label>
                 <Input
                   value={editedMed.via}
-                  onChange={(e) => setEditedMed({...editedMed, via: e.target.value})}
-                  className="text-xs sm:text-sm p-2"
-                  placeholder="Ex: VO (via oral)"
+                  onChange={(e) => setEditedMed({ ...editedMed, via: e.target.value })}
+                  className="bg-white"
+                  placeholder="Ex: VO"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs font-medium text-gray-700">Posologia</label>
+            <Separator />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">Posologia</Label>
                 <Input
                   value={editedMed.dosage}
-                  onChange={(e) => setEditedMed({...editedMed, dosage: e.target.value})}
-                  className="text-xs sm:text-sm p-2"
+                  onChange={(e) => setEditedMed({ ...editedMed, dosage: e.target.value })}
+                  className="bg-white"
                   placeholder="Ex: 1 comp. c/6h"
                 />
               </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700">Duração</label>
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">Duração</Label>
                 <Input
                   value={editedMed.duration}
-                  onChange={(e) => setEditedMed({...editedMed, duration: e.target.value})}
-                  className="text-xs sm:text-sm p-2"
+                  onChange={(e) => setEditedMed({ ...editedMed, duration: e.target.value })}
+                  className="bg-white"
                   placeholder="Ex: 5 dias"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs font-medium text-gray-700">Qtde (números)</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">Quantidade</Label>
                 <Input
                   value={editedMed.quantity || ''}
-                  onChange={(e) => setEditedMed({...editedMed, quantity: e.target.value})}
-                  className="text-xs sm:text-sm p-2"
-                  placeholder="Ex: 10"
+                  onChange={(e) => setEditedMed({ ...editedMed, quantity: e.target.value })}
+                  className="bg-white"
+                  placeholder="Numérico"
                 />
               </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700">Qtde (extenso)</label>
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">Extenso</Label>
                 <Input
                   value={editedMed.quantityText || ''}
-                  onChange={(e) => setEditedMed({...editedMed, quantityText: e.target.value})}
-                  className="text-xs sm:text-sm p-2"
-                  placeholder="Ex: 10 (dez)"
+                  onChange={(e) => setEditedMed({ ...editedMed, quantityText: e.target.value })}
+                  className="bg-white"
+                  placeholder="Por extenso"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-gray-700">Indicação</label>
-              <Input
-                value={editedMed.indication}
-                onChange={(e) => setEditedMed({...editedMed, indication: e.target.value})}
-                className="text-xs sm:text-sm p-2"
-                placeholder="Ex: Dor e febre"
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 pt-2 gap-2">
-              <label className="flex items-center gap-2 text-xs sm:text-sm">
-                <input
-                  type="checkbox"
-                  checked={editedMed.isControlled}
-                  onChange={(e) => setEditedMed({...editedMed, isControlled: e.target.checked})}
-                  className="rounded text-[#8C00FF] focus:ring-[#8C00FF] w-4 h-4"
-                />
-                <span className={`${isControlled ? 'text-red-700 font-semibold' : 'text-gray-700'}`}>Medicamento Controlado</span>
-              </label>
-
-              <div className="flex gap-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-gray-300 text-gray-700 text-xs px-2 py-1 flex-1"
-                  onClick={() => setIsEditing(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  className={`bg-[#8C00FF] hover:bg-[#7a00e6] text-xs px-2 py-1 flex-1 ${isControlled ? 'bg-red-600 hover:bg-red-700' : 'bg-[#8C00FF] hover:bg-[#7a00e6]'}`}
-                  onClick={handleSave}
-                >
-                  <Save className="w-3 h-3 mr-1" />
-                  Salvar
-                </Button>
-              </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                className={cn(isControlled ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary/90")}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Salvar Alterações
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className={`${bgColor} rounded-lg p-3 border ${borderColor} sm:p-4`}>
-      <div className="flex items-start gap-2 sm:gap-3">
-        <div className={`flex-shrink-0 ${isControlled ? 'bg-red-600' : 'bg-[#8C00FF]'} text-white rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-xs sm:text-sm font-bold`}>
-          {idx + 1}
+    <Card className={cn(
+      "group transition-all duration-300 hover:shadow-md border-l-4",
+      isControlled ? "border-l-red-500 bg-red-50/10" : "border-l-primary bg-white"
+    )}>
+      <CardContent className="p-5">
+        <div className="flex items-start gap-4">
+          <div className={cn(
+            "h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 mt-1",
+            isControlled ? "bg-red-500" : "bg-primary"
+          )}>
+            {idx + 1}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-4 mb-2">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className={cn("font-bold text-lg", isControlled ? "text-red-900" : "text-gray-900")}>
+                    {med.name}
+                  </h4>
+                  <Badge variant="outline" className="text-gray-600 bg-white">
+                    {med.concentration}
+                  </Badge>
+                  {isControlled && (
+                    <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-red-200">
+                      Controlado
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+                  <span className="capitalize">{med.form}</span>
+                  <span className="h-1 w-1 rounded-full bg-gray-300" />
+                  <span>{med.via}</span>
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-gray-500 hover:text-primary hover:bg-primary/10"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit3 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                  onClick={onDelete}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4 mt-4 bg-gray-50/50 p-3 rounded-lg border border-gray-100">
+              <div className="flex items-start gap-3">
+                <Clock className="h-4 w-4 text-gray-400 mt-0.5" />
+                <div>
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Posologia</span>
+                  <span className="text-sm font-medium text-gray-900">{med.dosage}</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Calendar className="h-4 w-4 text-gray-400 mt-0.5" />
+                <div>
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Duração</span>
+                  <span className="text-sm font-medium text-gray-900">{med.duration}</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Pill className="h-4 w-4 text-gray-400 mt-0.5" />
+                <div>
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Quantidade</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {med.quantity} <span className="text-gray-500 font-normal">({med.quantityText})</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-4 w-4 text-gray-400 mt-0.5" />
+                <div>
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Indicação</span>
+                  <span className="text-sm font-medium text-gray-900">{med.indication}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex-1 space-y-1.5 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <p className={`font-bold ${isControlled ? 'text-red-800' : 'text-gray-900'} text-sm sm:text-base truncate`}>
-                {med.name} {med.concentration} – {med.form}
-              </p>
-              <p className="text-xs text-gray-600 truncate">{med.indication}</p>
-            </div>
-            <div className="flex gap-1 ml-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 w-7 p-0 text-gray-600 hover:text-gray-800 touch-target"
-                onClick={() => setIsEditing(true)}
-              >
-                <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 w-7 p-0 text-red-600 hover:text-red-800 touch-target"
-                onClick={onDelete}
-              >
-                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-x-4 sm:gap-y-1 text-xs sm:text-sm">
-            <div>
-              <span className={`font-semibold ${isControlled ? 'text-red-700' : 'text-gray-700'}`}>Via:</span>
-              <span className={`${isControlled ? 'text-red-900' : 'text-gray-900'} ml-1`}>{med.via}</span>
-            </div>
-            <div>
-              <span className={`font-semibold ${isControlled ? 'text-red-700' : 'text-gray-700'}`}>Qtde:</span>
-              <span className={`${isControlled ? 'text-red-900' : 'text-gray-900'} ml-1`}>{med.quantityText || med.quantity}</span>
-            </div>
-          </div>
-
-          <div className="text-xs sm:text-sm">
-            <span className={`font-semibold ${isControlled ? 'text-red-700' : 'text-gray-700'}`}>Posologia:</span>
-            <span className={`${isControlled ? 'text-red-900' : 'text-gray-900'} ml-1`}>{med.dosage}</span>
-          </div>
-
-          <div className="text-xs sm:text-sm">
-            <span className={`font-semibold ${isControlled ? 'text-red-700' : 'text-gray-700'}`}>Duração:</span>
-            <span className={`${isControlled ? 'text-red-900' : 'text-gray-900'} ml-1`}>{med.duration}</span>
-          </div>
-
-          {isControlled && (
-            <div className="mt-1 text-[10px] sm:text-xs font-semibold text-red-600 bg-red-100 rounded px-1.5 py-1 sm:px-2 sm:py-1 inline-block">
-              MEDICAMENTO CONTROLADO
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

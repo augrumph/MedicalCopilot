@@ -31,15 +31,15 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
       </a>
 
       <AppSidebar />
-      <SidebarInset className="overflow-hidden">
+      <SidebarInset className="h-screen overflow-hidden flex flex-col bg-gray-50/50">
         <AppNavbar title={title} description={description} />
-        <div
+        <main
           id="main-content"
-          className="flex flex-1 flex-col gap-4 p-4 sm:gap-6 sm:p-6 lg:gap-8 lg:p-8 overflow-auto"
+          className="flex-1 overflow-y-auto flex flex-col relative px-6 sm:px-8 lg:px-10 py-6"
           tabIndex={-1}
         >
           {children}
-        </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   )

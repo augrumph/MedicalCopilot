@@ -13,7 +13,7 @@ interface AppNavbarProps {
 export function AppNavbar({ title, description }: AppNavbarProps) {
   return (
     <header
-      className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-gray-300 bg-background px-4 sm:h-16 sm:px-6"
+      className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-gray-200 bg-background px-4 sm:px-6"
       aria-label="Barra de navegação principal"
     >
       <div className="flex items-center gap-3">
@@ -21,7 +21,7 @@ export function AppNavbar({ title, description }: AppNavbarProps) {
           className="-ml-1 h-8 w-8 text-gray-700 hover:bg-gray-100"
           aria-label="Alternar menu lateral"
         />
-        <Separator orientation="vertical" className="h-6 bg-gray-300" />
+        <Separator orientation="vertical" className="h-6 bg-gray-200" />
       </div>
 
       <div className="flex flex-1 items-center gap-4">

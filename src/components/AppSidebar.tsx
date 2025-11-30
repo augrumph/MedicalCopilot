@@ -7,7 +7,7 @@ import {
   Activity,
   LogOut,
   FileText,
-  RefreshCw,
+  Calendar,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -54,6 +54,11 @@ const getMenuItems = (appContext: 'medical' | 'psychology') => {
 
 const bottomMenuItems = [
   {
+    title: 'Agenda',
+    icon: Calendar,
+    url: '/scheduling',
+  },
+  {
     title: 'Configurações',
     icon: Settings,
     url: '/settings',
@@ -63,7 +68,7 @@ const bottomMenuItems = [
 export function AppSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, logout, appContext, setAppContext } = useAppStore()
+  const { user, logout, appContext } = useAppStore()
   const config = getContextConfig(appContext)
   const menuItems = getMenuItems(appContext)
 
@@ -72,15 +77,10 @@ export function AppSidebar() {
     navigate('/')
   }
 
-  const toggleContext = () => {
-    const newContext = appContext === 'medical' ? 'psychology' : 'medical'
-    setAppContext(newContext)
-  }
-
   const isActive = (url: string) => location.pathname === url
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-gray-200">
+    <Sidebar collapsible="icon" variant="inset" className="border-r border-gray-200">
       {/* Header */}
       <SidebarHeader className="h-16 border-b border-gray-200 px-4 group-data-[collapsible=icon]:px-2">
         <div className="flex h-full items-center gap-3 group-data-[collapsible=icon]:justify-center">
@@ -93,22 +93,6 @@ export function AppSidebar() {
           </div>
         </div>
       </SidebarHeader>
-
-      {/* Context Toggle */}
-      <div className="px-3 py-3 border-b border-gray-200">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleContext}
-          className="w-full justify-start gap-2 border-gray-300 hover:border-[#8C00FF] hover:text-[#8C00FF] group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center"
-          title={`Trocar para ${appContext === 'medical' ? 'Psicologia' : 'Medicina'}`}
-        >
-          <RefreshCw className="h-4 w-4" />
-          <span className="group-data-[collapsible=icon]:hidden">
-            {appContext === 'medical' ? '🧠 Psicologia' : '⚕️ Medicina'}
-          </span>
-        </Button>
-      </div>
 
       {/* Content */}
       <SidebarContent className="px-3 py-4 group-data-[collapsible=icon]:px-2">
@@ -130,27 +114,21 @@ export function AppSidebar() {
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group/item",
                         "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0",
                         active
-                          ? "bg-[#8C00FF] text-white shadow-md shadow-[#8C00FF]/20"
-                          : "text-gray-700 hover:bg-gray-100"
+                          ? "bg-[#8C00FF]/10 text-[#8C00FF]"
+                          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                       )}
                     >
                       <item.icon className={cn(
                         "h-5 w-5 transition-transform group-hover/item:scale-110 flex-shrink-0",
-                        active ? "text-white" : "text-gray-600"
+                        active ? "text-[#8C00FF]" : "text-gray-500 group-hover/item:text-gray-700"
                       )}
-                      aria-hidden="true" />
+                        aria-hidden="true" />
                       <span className={cn(
                         "font-medium text-sm group-data-[collapsible=icon]:hidden",
-                        active ? "text-white" : "text-gray-700"
+                        active ? "text-[#8C00FF] font-semibold" : "text-gray-700"
                       )}>
                         {item.title}
                       </span>
-                      {active && (
-                        <div
-                          className="ml-auto h-2 w-2 rounded-full bg-white group-data-[collapsible=icon]:hidden"
-                          aria-hidden="true"
-                        />
-                      )}
                     </Link>
                   </SidebarMenuItem>
                 )
@@ -188,7 +166,7 @@ export function AppSidebar() {
                         "h-5 w-5 transition-transform group-hover/item:scale-110 flex-shrink-0",
                         active ? "text-white" : "text-gray-600"
                       )}
-                      aria-hidden="true" />
+                        aria-hidden="true" />
                       <span className={cn(
                         "font-medium text-sm group-data-[collapsible=icon]:hidden",
                         active ? "text-white" : "text-gray-700"

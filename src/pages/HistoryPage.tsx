@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Search, Filter, FileText,  LayoutGrid, LayoutList, X, Stethoscope, Brain, TrendingUp } from 'lucide-react';
+import { ArrowRight, Search, Filter, FileText, LayoutGrid, LayoutList, X, Stethoscope, Brain, TrendingUp, Clock, Sparkles, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -15,19 +16,15 @@ import {
 } from "@/components/ui/select";
 import { useAppStore } from '@/stores/appStore';
 import { getContextConfig } from '@/lib/contextConfig';
-import { psychologyPatients, psychologySessions } from '@/lib/psychologyMockData';
+import { getPatientAvatar } from '@/lib/utils';
 
 type ViewMode = 'grid' | 'list';
 type DateFilter = 'all' | 'today' | 'week' | 'month' | 'quarter' | 'year';
 
 export function HistoryPage() {
   const navigate = useNavigate();
-  const { consultations: medicalConsultations, patients: medicalPatients, appContext } = useAppStore();
+  const { consultations, patients, appContext } = useAppStore();
   const config = getContextConfig(appContext);
-
-  // Use dados específicos baseado no contexto
-  const consultations = appContext === 'psychology' ? psychologySessions : medicalConsultations;
-  const patients = appContext === 'psychology' ? psychologyPatients : medicalPatients;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -100,51 +97,137 @@ export function HistoryPage() {
     diagnosisFilter !== 'all',
   ].filter(Boolean).length;
 
+  // Calculate stats
+  const completedConsultations = consultations.filter(c => c.status === 'finished').length;
+  const avgDuration = consultations.length > 0
+    ? Math.round(consultations.reduce((acc, c) => {
+      if (!c.finishedAt) return acc;
+      const diff = Math.floor((new Date(c.finishedAt).getTime() - new Date(c.startedAt).getTime()) / 60000);
+      return acc + diff;
+    }, 0) / completedConsultations)
+    : 0;
+
+  const stats = [
+    {
+      title: 'Total',
+      value: consultations.length.toString(),
+      icon: FileText,
+      description: 'consultas',
+      gradient: 'from-[#8C00FF] to-[#450693]',
+      iconBg: 'bg-[#8C00FF]',
+    },
+    {
+      title: 'Encontradas',
+      value: filteredConsultations.length.toString(),
+      icon: Search,
+      description: 'nos filtros',
+      gradient: 'from-[#FF3F7F] to-[#FF1654]',
+      iconBg: 'bg-[#FF3F7F]',
+    },
+    {
+      title: 'Concluídas',
+      value: completedConsultations.toString(),
+      icon: TrendingUp,
+      description: 'finalizadas',
+      gradient: 'from-[#00D9A5] to-[#00B386]',
+      iconBg: 'bg-[#00D9A5]',
+    },
+    {
+      title: 'Duração Média',
+      value: `${avgDuration}min`,
+      icon: Clock,
+      description: 'por consulta',
+      gradient: 'from-[#FFC400] to-[#FF9500]',
+      iconBg: 'bg-[#FFC400]',
+    },
+  ];
+
   return (
-    <AppLayout title={config.historyTitle} description={config.historyDescription}>
-      <div className="space-y-6">
-        {/* Header */}
+    <AppLayout>
+      <div className="min-h-full space-y-6">
+        {/* Hero Section - Compact */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200"
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#450693] via-[#8C00FF] to-[#FF3F7F] p-6 md:p-8 shadow-2xl"
         >
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {config.historyTitle}
-            </h1>
-            <p className="text-gray-600">
-              {filteredConsultations.length} de {consultations.length} {consultations.length === 1 ? config.consultationLabel.toLowerCase() : config.consultationLabelPlural.toLowerCase()}
-            </p>
-          </div>
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
 
-          <div className="flex gap-4">
-            <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
-              <div className="h-10 w-10 rounded-lg bg-[#8C00FF]/10 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-[#8C00FF]" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{filteredConsultations.length}</p>
-                <p className="text-xs text-gray-500">Encontradas</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
-              <div className="h-10 w-10 rounded-lg bg-[#8C00FF]/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-[#8C00FF]" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{consultations.length}</p>
-                <p className="text-xs text-gray-500">Total</p>
-              </div>
-            </div>
+          <div className="relative">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="flex items-center gap-2 mb-2"
+            >
+              <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold">
+                <Sparkles className="h-3 w-3 mr-1" />
+                Histórico Completo
+              </Badge>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-3xl md:text-4xl font-black text-white tracking-tight mb-2"
+            >
+              {config.historyTitle}
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-white/90 font-medium max-w-2xl"
+            >
+              {filteredConsultations.length} de {consultations.length} {consultations.length === 1 ? config.consultationLabel.toLowerCase() : config.consultationLabelPlural.toLowerCase()} • {completedConsultations} concluídas
+            </motion.p>
           </div>
         </motion.div>
 
-        {/* Controls Bar */}
+        {/* Stats Grid - Compact */}
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+          {stats.map((stat, index) => (
+            <motion.div
+              key={stat.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 + index * 0.05 }}
+            >
+              <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300 group">
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-5`} />
+
+                <CardContent className="p-4 relative">
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-xl ${stat.iconBg} shadow-sm`}>
+                      <stat.icon className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider truncate">
+                        {stat.title}
+                      </p>
+                      <p className="text-2xl font-black text-gray-900 tracking-tight mt-0.5">
+                        {stat.value}
+                      </p>
+                      <p className="text-[10px] text-gray-500 mt-0.5 truncate">
+                        {stat.description}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Controls Bar - Compact */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.6 }}
           className="flex flex-col lg:flex-row gap-3"
         >
           {/* Search */}
@@ -155,17 +238,17 @@ export function HistoryPage() {
               placeholder={config.searchPlaceholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-10 border-gray-300 rounded-lg focus-visible:border-[#8C00FF] focus-visible:ring-2 focus-visible:ring-[#8C00FF]/20"
+              className="pl-10 h-10 border-gray-200 rounded-xl focus-visible:border-[#8C00FF] focus-visible:ring-2 focus-visible:ring-[#8C00FF]/20"
             />
           </div>
 
           {/* View Toggle */}
-          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setViewMode('grid')}
-              className={`h-8 px-3 rounded-md transition-all ${
+              className={`h-8 px-3 rounded-lg transition-all ${
                 viewMode === 'grid'
                   ? 'bg-white shadow-sm text-gray-900'
                   : 'text-gray-600 hover:text-gray-900'
@@ -178,7 +261,7 @@ export function HistoryPage() {
               variant="ghost"
               size="sm"
               onClick={() => setViewMode('list')}
-              className={`h-8 px-3 rounded-md transition-all ${
+              className={`h-8 px-3 rounded-lg transition-all ${
                 viewMode === 'list'
                   ? 'bg-white shadow-sm text-gray-900'
                   : 'text-gray-600 hover:text-gray-900'
@@ -193,18 +276,18 @@ export function HistoryPage() {
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
-            className={`h-10 rounded-lg px-4 ${
+            className={`h-10 rounded-xl px-4 border-gray-200 ${
               showFilters
                 ? 'border-[#8C00FF] bg-[#8C00FF]/5 text-[#8C00FF]'
-                : 'border-gray-300 hover:border-gray-400'
+                : 'hover:border-gray-300'
             }`}
           >
             <Filter className="h-4 w-4 mr-2" />
             Filtros
             {activeFiltersCount > 0 && (
-              <span className="ml-2 h-5 w-5 rounded-full bg-[#8C00FF] text-white text-xs flex items-center justify-center">
+              <Badge className="ml-2 h-5 w-5 rounded-full bg-[#8C00FF] text-white text-xs flex items-center justify-center p-0">
                 {activeFiltersCount}
-              </span>
+              </Badge>
             )}
           </Button>
         </motion.div>
@@ -216,12 +299,12 @@ export function HistoryPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.15 }}
+              transition={{ duration: 0.2 }}
             >
-              <Card className="border border-gray-200 rounded-xl">
+              <Card className="border-0 shadow-md rounded-2xl">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-medium text-gray-900">Filtros</h3>
+                    <h3 className="font-semibold text-gray-900">Filtros Avançados</h3>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -243,7 +326,7 @@ export function HistoryPage() {
                         Período
                       </label>
                       <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as DateFilter)}>
-                        <SelectTrigger className="h-10 border-gray-300 rounded-lg">
+                        <SelectTrigger className="h-10 border-gray-200 rounded-xl">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -263,7 +346,7 @@ export function HistoryPage() {
                         {config.diagnosisLabel}
                       </label>
                       <Select value={diagnosisFilter} onValueChange={setDiagnosisFilter}>
-                        <SelectTrigger className="h-10 border-gray-300 rounded-lg">
+                        <SelectTrigger className="h-10 border-gray-200 rounded-xl">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
@@ -286,29 +369,34 @@ export function HistoryPage() {
         {/* Lista de Consultas */}
         {filteredConsultations.length === 0 ? (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
             className="flex flex-col items-center justify-center py-16 text-center"
           >
-            <div className="h-20 w-20 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-              <FileText className="h-10 w-10 text-gray-400" />
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#8C00FF] to-[#450693] rounded-full blur-2xl opacity-20 animate-pulse"></div>
+              <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center shadow-xl">
+                <FileText className="h-12 w-12 text-white" />
+              </div>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+
+            <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-[#450693] to-[#8C00FF] bg-clip-text text-transparent">
               Nenhuma {config.consultationLabel.toLowerCase()} encontrada
             </h3>
-            <p className="text-sm text-gray-500 mb-4 max-w-sm">
+
+            <p className="text-gray-600 max-w-md mb-8 text-lg">
               Tente ajustar os filtros ou termos de busca
             </p>
+
             {(activeFiltersCount > 0 || searchTerm) && (
               <Button
-                variant="outline"
                 onClick={() => {
                   setDateFilter('all');
                   setDiagnosisFilter('all');
                   setSearchTerm('');
                 }}
-                className="border-gray-300"
+                className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white shadow-lg hover:shadow-xl"
               >
                 <X className="h-4 w-4 mr-2" />
                 Limpar filtros
@@ -317,10 +405,10 @@ export function HistoryPage() {
           </motion.div>
         ) : (
           <motion.div
-            className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-2'}
+            className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-3'}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.3 }}
           >
             {filteredConsultations.map((consultation, index) => {
               const patient = patients.find(p => p.id === consultation.patientId);
@@ -341,21 +429,23 @@ export function HistoryPage() {
                     transition={{ delay: Math.min(index * 0.01, 0.2) }}
                   >
                     <Card
-                      className="group border border-gray-200 hover:border-[#8C00FF] bg-white hover:shadow-md transition-all duration-200 cursor-pointer rounded-lg"
+                      className="group border-0 shadow-md hover:shadow-lg bg-white hover:border-[#8C00FF]/20 transition-all duration-200 cursor-pointer rounded-2xl"
                       onClick={() => navigate(`/consultation/${consultation.id}`)}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
                           {/* Avatar */}
-                          <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-[#8C00FF] to-[#6B00CC] flex items-center justify-center text-white font-semibold flex-shrink-0">
-                            {patient.name?.charAt(0) || 'P'}
-                          </div>
+                          <img
+                            src={getPatientAvatar(patient.name)}
+                            alt={patient.name}
+                            className="h-12 w-12 rounded-xl object-cover flex-shrink-0 ring-2 ring-white shadow-sm"
+                          />
 
                           {/* Content Grid */}
                           <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                             {/* Patient */}
                             <div className="md:col-span-3">
-                              <h3 className="font-medium text-gray-900 truncate group-hover:text-[#8C00FF] transition-colors">
+                              <h3 className="font-semibold text-gray-900 truncate group-hover:text-[#8C00FF] transition-colors">
                                 {patient.name}
                               </h3>
                               <p className="text-xs text-gray-500 mt-0.5">
@@ -365,11 +455,11 @@ export function HistoryPage() {
 
                             {/* Date */}
                             <div className="md:col-span-2">
-                              <p className="text-sm text-gray-700">
+                              <p className="text-sm font-medium text-gray-700">
                                 {new Date(consultation.startedAt).toLocaleDateString('pt-BR', {
                                   day: '2-digit',
                                   month: 'short',
-                                  year: 'numeric'
+                                  year: '2-digit'
                                 })}
                               </p>
                               <p className="text-xs text-gray-500 mt-0.5">
@@ -379,7 +469,7 @@ export function HistoryPage() {
 
                             {/* Diagnosis */}
                             <div className="md:col-span-4">
-                              <div className="flex items-center gap-2" title={`${config.diagnosisLabel}: ${diagnosis}`}>
+                              <div className="flex items-center gap-2">
                                 {appContext === 'psychology' ? (
                                   <Brain className="h-3.5 w-3.5 text-[#8C00FF] flex-shrink-0" />
                                 ) : (
@@ -396,10 +486,9 @@ export function HistoryPage() {
                               </p>
                             </div>
 
-                            {/* Status & Action */}
-                            <div className="md:col-span-1 flex items-center justify-end gap-2">
-                              <div className="h-2 w-2 rounded-full bg-green-500 flex-shrink-0" />
-                              <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-[#8C00FF] group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                            {/* Action */}
+                            <div className="md:col-span-1 flex items-center justify-end">
+                              <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-[#8C00FF] group-hover:translate-x-1 transition-all flex-shrink-0" />
                             </div>
                           </div>
                         </div>
@@ -409,7 +498,7 @@ export function HistoryPage() {
                 );
               }
 
-              // Clean Grid Card View (Default)
+              // Clean Grid Card View
               return (
                 <motion.div
                   key={consultation.id}
@@ -418,18 +507,20 @@ export function HistoryPage() {
                   transition={{ delay: Math.min(index * 0.02, 0.3) }}
                 >
                   <Card
-                    className="group border border-gray-200 hover:border-[#8C00FF] bg-white hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden rounded-lg"
+                    className="group border-0 shadow-md hover:shadow-xl bg-white transition-all duration-200 cursor-pointer overflow-hidden rounded-2xl"
                     onClick={() => navigate(`/consultation/${consultation.id}`)}
                   >
                     <CardContent className="p-4">
                       {/* Header */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                          <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-[#8C00FF] to-[#6B00CC] flex items-center justify-center text-white font-semibold flex-shrink-0">
-                            {patient.name?.charAt(0) || 'P'}
-                          </div>
+                          <img
+                            src={getPatientAvatar(patient.name)}
+                            alt={patient.name}
+                            className="h-12 w-12 rounded-xl object-cover flex-shrink-0 ring-2 ring-white shadow-sm"
+                          />
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 truncate group-hover:text-[#8C00FF] transition-colors">
+                            <h3 className="font-bold text-gray-900 truncate group-hover:text-[#8C00FF] transition-colors">
                               {patient.name}
                             </h3>
                             <p className="text-xs text-gray-500">
@@ -437,33 +528,38 @@ export function HistoryPage() {
                             </p>
                           </div>
                         </div>
-                        <div className="h-5 w-5 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                          <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                        </div>
+                        <Badge className="bg-green-100 text-green-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                          Concluída
+                        </Badge>
                       </div>
 
                       {/* Info Grid */}
-                      <div className="grid grid-cols-2 gap-2.5 mb-3">
-                        <div>
-                          <p className="text-xs text-gray-500 mb-0.5">Data</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {new Date(consultation.startedAt).toLocaleDateString('pt-BR', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: '2-digit'
-                            })}
-                          </p>
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                          <div>
+                            <p className="text-xs text-gray-500">Data</p>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {new Date(consultation.startedAt).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: 'short'
+                              })}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs text-gray-500 mb-0.5">Duração</p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {formatDuration(consultation.startedAt, consultation.finishedAt)}
-                          </p>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3.5 w-3.5 text-gray-400" />
+                          <div>
+                            <p className="text-xs text-gray-500">Duração</p>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {formatDuration(consultation.startedAt, consultation.finishedAt)}
+                            </p>
+                          </div>
                         </div>
                       </div>
 
                       {/* Diagnosis */}
-                      <div className="mb-3">
+                      <div className="mb-3 p-3 bg-gradient-to-r from-[#8C00FF]/5 to-transparent rounded-xl">
                         <p className="text-xs text-gray-500 mb-1">{config.diagnosisLabel}</p>
                         <div className="flex items-center gap-2">
                           {appContext === 'psychology' ? (
@@ -471,24 +567,24 @@ export function HistoryPage() {
                           ) : (
                             <Stethoscope className="h-3.5 w-3.5 text-[#8C00FF] flex-shrink-0" />
                           )}
-                          <p className="text-sm font-medium text-gray-900 truncate">{diagnosis}</p>
+                          <p className="text-sm font-semibold text-gray-900 truncate">{diagnosis}</p>
                         </div>
                       </div>
 
                       {/* Note Preview */}
                       {notePreview && (
-                        <div className="mb-3 p-2.5 bg-gray-50 rounded-lg">
-                          <p className="text-xs text-gray-600 line-clamp-2">
-                            {notePreview}
+                        <div className="mb-3 p-3 bg-gray-50 rounded-xl">
+                          <p className="text-xs text-gray-600 line-clamp-2 italic">
+                            "{notePreview}"
                           </p>
                         </div>
                       )}
 
                       {/* Footer */}
-                      <div className="flex items-center justify-end pt-2.5 border-t border-gray-100">
-                        <div className="flex items-center gap-1.5 text-sm font-medium text-gray-400 group-hover:text-[#8C00FF] transition-colors">
+                      <div className="flex items-center justify-end pt-3 border-t border-gray-100">
+                        <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 group-hover:text-[#8C00FF] transition-colors">
                           Ver detalhes
-                          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                          <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                         </div>
                       </div>
                     </CardContent>

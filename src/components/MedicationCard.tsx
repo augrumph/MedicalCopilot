@@ -1,8 +1,9 @@
 import React, { memo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Pill } from 'lucide-react';
+import { Pill, Clock, Calendar, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 interface MedicationCardProps {
   med: {
@@ -25,47 +26,94 @@ interface MedicationCardProps {
 const MedicationCard: React.FC<MedicationCardProps> = ({ med }) => {
   return (
     <Card className={cn(
-      "shadow-md",
-      med.type === 'primary' && "bg-gradient-to-br from-[#8C00FF]/10 to-[#450693]/5 border border-[#8C00FF]/30",
-      med.type === 'alternative' && "bg-gradient-to-br from-[#FFC400]/10 to-[#FF9500]/5 border border-[#FFC400]/30",
-      med.type === 'optional' && "bg-gray-50 border border-gray-300"
+      "shadow-sm hover:shadow-md transition-all duration-300 border-l-4",
+      med.type === 'primary' && "border-l-pink-500 bg-white",
+      med.type === 'alternative' && "border-l-amber-400 bg-white",
+      med.type === 'optional' && "border-l-gray-300 bg-gray-50/50",
+      med.type === 'controlled' && "border-l-purple-600 bg-purple-50/30"
     )}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-4">
             <div className={cn(
-              "h-10 w-10 rounded-lg flex items-center justify-center",
-              med.type === 'primary' && "bg-gradient-to-br from-[#8C00FF] to-[#450693]",
-              med.type === 'alternative' && "bg-gradient-to-br from-[#FFC400] to-[#FF9500]",
-              med.type === 'optional' && "bg-gray-400"
+              "h-12 w-12 rounded-xl flex items-center justify-center shadow-sm ring-1 ring-inset",
+              med.type === 'primary' && "bg-pink-50 text-pink-600 ring-pink-100",
+              med.type === 'alternative' && "bg-amber-50 text-amber-600 ring-amber-100",
+              med.type === 'optional' && "bg-gray-100 text-gray-500 ring-gray-200",
+              med.type === 'controlled' && "bg-purple-100 text-purple-600 ring-purple-200"
             )}>
-              <Pill className="h-5 w-5 text-white" />
+              <Pill className="h-6 w-6" />
             </div>
             <div>
-              <h4 className="font-bold text-gray-900">{med.name}</h4>
-              <p className="text-xs text-gray-600">{med.indication}</p>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-lg text-gray-900">{med.name}</h4>
+                <span className="text-sm font-medium text-gray-500">{med.concentration}</span>
+              </div>
+              <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
+                <span className="capitalize">{med.form}</span>
+                <span className="text-gray-300">•</span>
+                <span>{med.via}</span>
+              </p>
             </div>
           </div>
-          <Badge className={cn(
-            "text-xs font-semibold",
-            med.type === 'primary' && "bg-[#8C00FF] text-white",
-            med.type === 'alternative' && "bg-[#FFC400] text-gray-900",
-            med.type === 'optional' && "bg-gray-400 text-white"
-          )}>
-            {med.type === 'primary' && 'Primeira Escolha'}
-            {med.type === 'alternative' && 'Alternativa'}
-            {med.type === 'optional' && 'Opcional'}
-          </Badge>
+          <div className="flex flex-col items-end gap-2">
+            <Badge className={cn(
+              "text-xs font-semibold px-2.5 py-0.5 shadow-none border",
+              med.type === 'primary' && "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100",
+              med.type === 'alternative' && "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
+              med.type === 'optional' && "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200",
+              med.type === 'controlled' && "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+            )}>
+              {med.type === 'primary' && 'Primeira Escolha'}
+              {med.type === 'alternative' && 'Alternativa'}
+              {med.type === 'optional' && 'Opcional'}
+              {med.type === 'controlled' && 'Controlado'}
+            </Badge>
+            {med.isControlled && (
+              <Badge variant="outline" className="text-[10px] border-purple-200 text-purple-600 bg-white">
+                {med.controlledType}
+              </Badge>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-2 bg-white rounded-lg p-3 border border-gray-200">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-gray-700">Posologia:</span>
-            <span className="text-sm text-gray-900">{med.dosage}</span>
+        <Separator className="mb-4 bg-gray-100" />
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 p-2.5 rounded-lg bg-gray-50/80 hover:bg-gray-50 transition-colors">
+              <Clock className="h-4 w-4 text-gray-400 mt-0.5" />
+              <div>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">Posologia</span>
+                <span className="text-sm font-medium text-gray-900">{med.dosage}</span>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-2.5 rounded-lg bg-gray-50/80 hover:bg-gray-50 transition-colors">
+              <Calendar className="h-4 w-4 text-gray-400 mt-0.5" />
+              <div>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">Duração</span>
+                <span className="text-sm font-medium text-gray-900">{med.duration}</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-gray-700">Duração:</span>
-            <span className="text-sm text-gray-900">{med.duration}</span>
+
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 p-2.5 rounded-lg bg-gray-50/80 hover:bg-gray-50 transition-colors">
+              <AlertCircle className="h-4 w-4 text-gray-400 mt-0.5" />
+              <div>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">Indicação</span>
+                <span className="text-sm font-medium text-gray-900">{med.indication}</span>
+              </div>
+            </div>
+            {med.quantity && (
+              <div className="flex items-start gap-3 p-2.5 rounded-lg bg-gray-50/80 hover:bg-gray-50 transition-colors">
+                <Pill className="h-4 w-4 text-gray-400 mt-0.5" />
+                <div>
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-0.5">Quantidade</span>
+                  <span className="text-sm font-medium text-gray-900">{med.quantity}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

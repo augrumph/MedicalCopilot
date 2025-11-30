@@ -3,7 +3,6 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Patient, Consultation, AISuggestions, SignatureType, Prescription } from '@/lib/types';
 import { generateMockPatients, generateMockConsultations } from '@/lib/mockData';
 import type { AppContext } from '@/lib/contextConfig';
-import { psychologyPatients, psychologySessions } from '@/lib/psychologyMockData';
 
 interface User {
   name: string;
@@ -159,16 +158,10 @@ export const useAppStore = create<AppState>()(
 
       loadConsultation: (consultationId) => {
         const state = get();
-        const appContext = state.appContext;
-
-        // Buscar na lista correta baseado no contexto
-        const consultations = appContext === 'psychology' ? psychologySessions : state.consultations;
-        const patients = appContext === 'psychology' ? psychologyPatients : state.patients;
-
-        const consultation = consultations.find(c => c.id === consultationId);
+        const consultation = state.consultations.find(c => c.id === consultationId);
 
         if (consultation) {
-          const patient = patients.find(p => p.id === consultation.patientId);
+          const patient = state.patients.find(p => p.id === consultation.patientId);
           set({
             currentConsultation: consultation,
             selectedPatient: patient || null,

@@ -38,7 +38,7 @@ function App() {
             isOpen={isNotificationOpen}
             onClose={() => setIsNotificationOpen(false)}
           />
-          <Toaster position="bottom-right" />
+          <Toaster position="bottom-right" richColors closeButton expand={true} />
         </div>
       </BrowserRouter>
     </QueryClientProvider>
