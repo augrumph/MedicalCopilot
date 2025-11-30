@@ -56,7 +56,7 @@ const bottomMenuItems = [
   {
     title: 'Agenda',
     icon: Calendar,
-    url: '/scheduling',
+    url: '/appointments',
   },
   {
     title: 'Configurações',
@@ -77,7 +77,20 @@ export function AppSidebar() {
     navigate('/')
   }
 
-  const isActive = (url: string) => location.pathname === url
+  // Enhanced isActive to handle nested routes
+  const isActive = (url: string) => {
+    // Exact match
+    if (location.pathname === url) return true
+
+    // Handle nested routes (e.g., /consultation/123 activates /consultation)
+    if (url !== '/dashboard' && location.pathname.startsWith(url + '/')) return true
+
+    // Handle route aliases
+    if (url === '/appointments' && (location.pathname === '/scheduling' || location.pathname.startsWith('/scheduling/'))) return true
+    if (url === '/patients' && location.pathname.startsWith('/patients/')) return true
+
+    return false
+  }
 
   return (
     <Sidebar collapsible="icon" variant="inset" className="border-r border-gray-200">
