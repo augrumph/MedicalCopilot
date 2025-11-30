@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
-import { Stethoscope, Users, Calendar, ArrowRight, Sparkles, Clock, Phone, FileText, CheckCircle, AlertCircle, History, UserCheck, XCircle, Brain, Award } from 'lucide-react';
+import { Stethoscope, Calendar, Sparkles, Clock, Phone, FileText, Award, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,14 +12,13 @@ import { initializeMockAppointments } from '@/lib/data/mockAppointments';
 import { getPatientAvatar, cn } from '@/lib/utils';
 import type { Appointment } from '@/lib/types/appointment';
 
-type WorklistFilter = 'all' | 'urgent' | 'now' | 'next' | 'pending';
+type TimeGroup = 'past' | 'focus' | 'future';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user, patients, startConsultation } = useAppStore();
   const { appointments, addAppointment, clearAllAppointments, updateAppointment } = useAppointmentStore();
   const [isInitialized, setIsInitialized] = useState(false);
-  const [worklistFilter, setWorklistFilter] = useState<WorklistFilter>('all');
 
   // Get today's date in YYYY-MM-DD format
   const today = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
@@ -37,24 +36,23 @@ const DashboardPage = () => {
   const todayAppointments = useMemo(() => {
     return appointments
       .filter(apt => apt.date === today)
+      .filter(apt => apt.status !== 'cancelled' && apt.status !== 'no-show')
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [appointments, today]);
 
-  // Classify appointments with SMART priority logic
-  const classifiedAppointments = useMemo(() => {
-    const classified = {
-      urgent: [] as Appointment[], // Currently happening or critical
-      now: [] as Appointment[], // Within next 15 minutes
-      next: [] as Appointment[], // Within 15-30 minutes
-      late: [] as Appointment[], // Late but not too late (15-120 min)
-      probablyNoShow: [] as Appointment[], // Very late (>2 hours)
-      pending: [] as Appointment[], // Scheduled but not confirmed
-      scheduled: [] as Appointment[], // Confirmed for later
+  // Group appointments by time (SIMPLE: past, focus, future)
+  const groupedAppointments = useMemo(() => {
+    const groups: Record<TimeGroup, Appointment[]> = {
+      past: [],
+      focus: [],
+      future: [],
     };
 
+    let focusFound = false;
+
     todayAppointments.forEach(apt => {
-      // Skip already completed, cancelled or no-show
-      if (apt.status === 'completed' || apt.status === 'cancelled' || apt.status === 'no-show') {
+      // Skip completed
+      if (apt.status === 'completed') {
         return;
       }
 
@@ -63,61 +61,28 @@ const DashboardPage = () => {
       appointmentTime.setHours(hours, minutes, 0, 0);
       const diffMinutes = Math.floor((appointmentTime.getTime() - now.getTime()) / 60000);
 
-      // In-progress appointments are URGENT
+      // In progress = always focus
       if (apt.status === 'in-progress') {
-        classified.urgent.push(apt);
+        groups.focus.push(apt);
+        focusFound = true;
       }
-      // Within next 15 minutes - AGORA (NOW)
-      else if (diffMinutes >= -5 && diffMinutes <= 15) {
-        classified.now.push(apt);
+      // Within +/- 30 minutes and not yet focused on another = focus
+      else if (!focusFound && diffMinutes >= -30 && diffMinutes <= 30) {
+        groups.focus.push(apt);
+        focusFound = true;
       }
-      // Next 15-30 minutes - PRÓXIMO
-      else if (diffMinutes > 15 && diffMinutes <= 30) {
-        classified.next.push(apt);
+      // Past (before current time - 30min)
+      else if (diffMinutes < -30) {
+        groups.past.push(apt);
       }
-      // Late 15-120 minutes - ATRASADO (not urgent, just late)
-      else if (diffMinutes < -15 && diffMinutes >= -120) {
-        classified.late.push(apt);
-      }
-      // Very late (>2 hours) - PROVÁVEL FALTA
-      else if (diffMinutes < -120) {
-        classified.probablyNoShow.push(apt);
-      }
-      // Not confirmed - PENDENTE
-      else if (apt.status === 'scheduled') {
-        classified.pending.push(apt);
-      }
-      // Confirmed for later - CONFIRMADO
+      // Future
       else {
-        classified.scheduled.push(apt);
+        groups.future.push(apt);
       }
     });
 
-    return classified;
+    return groups;
   }, [todayAppointments, now]);
-
-  // Filter based on selected filter
-  const filteredAppointments = useMemo(() => {
-    if (worklistFilter === 'all') {
-      return [
-        ...classifiedAppointments.urgent,
-        ...classifiedAppointments.now,
-        ...classifiedAppointments.next,
-        ...classifiedAppointments.late,
-        ...classifiedAppointments.probablyNoShow,
-        ...classifiedAppointments.pending,
-        ...classifiedAppointments.scheduled,
-      ];
-    } else if (worklistFilter === 'urgent') {
-      return [...classifiedAppointments.urgent, ...classifiedAppointments.now];
-    } else if (worklistFilter === 'now') {
-      return classifiedAppointments.now;
-    } else if (worklistFilter === 'next') {
-      return classifiedAppointments.next;
-    } else {
-      return classifiedAppointments.pending;
-    }
-  }, [worklistFilter, classifiedAppointments]);
 
   // Initialize appointments from patients if needed
   useEffect(() => {
@@ -137,50 +102,6 @@ const DashboardPage = () => {
     }
   }, [isInitialized, appointments, patients, today, addAppointment, clearAllAppointments]);
 
-  // Calculate stats
-  const completedToday = todayAppointments.filter(a => a.status === 'completed').length;
-  const totalToday = todayAppointments.filter(a => a.status !== 'no-show' && a.status !== 'cancelled').length;
-  const completionRate = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
-
-  const stats = [
-    {
-      title: 'Agora',
-      value: classifiedAppointments.now.length.toString(),
-      icon: Clock,
-      description: 'próximos 15min',
-      gradient: 'from-[#8C00FF] to-[#450693]',
-      iconBg: 'bg-[#8C00FF]',
-      filter: 'now' as WorklistFilter,
-    },
-    {
-      title: 'Próximos',
-      value: classifiedAppointments.next.length.toString(),
-      icon: UserCheck,
-      description: 'em 30 minutos',
-      gradient: 'from-[#FFC400] to-[#FF9500]',
-      iconBg: 'bg-[#FFC400]',
-      filter: 'next' as WorklistFilter,
-    },
-    {
-      title: 'Pendentes',
-      value: classifiedAppointments.pending.length.toString(),
-      icon: AlertCircle,
-      description: 'não confirmados',
-      gradient: 'from-[#FF9500] to-[#FF6B00]',
-      iconBg: 'bg-[#FF9500]',
-      filter: 'pending' as WorklistFilter,
-    },
-    {
-      title: 'Concluídos',
-      value: `${completionRate}%`,
-      icon: CheckCircle,
-      description: `${completedToday} de ${totalToday}`,
-      gradient: 'from-[#00D9A5] to-[#00B386]',
-      iconBg: 'bg-[#00D9A5]',
-      filter: 'all' as WorklistFilter,
-    },
-  ];
-
   const handleStartConsultation = (appointment: Appointment) => {
     const patient = patients.find(p => p.id === appointment.patientId) ||
       patients.find(p => p.name.toLowerCase() === appointment.patientName.toLowerCase());
@@ -193,87 +114,29 @@ const DashboardPage = () => {
     }
   };
 
-  const handleMarkNoShow = (appointment: Appointment) => {
-    updateAppointment(appointment.id, { status: 'no-show' });
-  };
+  // Parse smart tags from reason (simulate Google Calendar parsing)
+  const getSmartTags = (appointment: Appointment) => {
+    const tags: string[] = [];
 
-  const getPriorityBadge = (appointment: Appointment) => {
-    const [hours, minutes] = appointment.startTime.split(':').map(Number);
-    const appointmentTime = new Date();
-    appointmentTime.setHours(hours, minutes, 0, 0);
-    const diffMinutes = Math.floor((appointmentTime.getTime() - now.getTime()) / 60000);
+    // Insurance from our data
+    if (appointment.insurance) {
+      tags.push(appointment.insurance);
+    }
 
-    // In progress
-    if (appointment.status === 'in-progress') {
-      return {
-        label: 'EM ATENDIMENTO',
-        color: 'bg-purple-600',
-        textColor: 'text-white',
-        icon: Stethoscope,
-        urgent: true
-      };
+    // Parse keywords from reason
+    if (appointment.reason) {
+      const reason = appointment.reason.toLowerCase();
+      if (reason.includes('retorno') || appointment.type === 'follow-up') {
+        tags.push('Retorno');
+      } else if (reason.includes('primeira') || appointment.isFirstVisit) {
+        tags.push('1ª Vez');
+      }
+      if (reason.includes('exame')) {
+        tags.push('Exames');
+      }
     }
-    // Now (within next 15 min or slightly late)
-    else if (diffMinutes >= -5 && diffMinutes <= 15) {
-      return {
-        label: 'AGORA',
-        color: 'bg-blue-600',
-        textColor: 'text-white',
-        icon: Clock,
-        urgent: false
-      };
-    }
-    // Next 15-30 min
-    else if (diffMinutes > 15 && diffMinutes <= 30) {
-      return {
-        label: 'PRÓXIMO',
-        color: 'bg-green-600',
-        textColor: 'text-white',
-        icon: UserCheck,
-        urgent: false
-      };
-    }
-    // Late 15-120 min
-    else if (diffMinutes < -15 && diffMinutes >= -120) {
-      const minutesLate = Math.abs(diffMinutes);
-      return {
-        label: `ATRASADO ${minutesLate}min`,
-        color: 'bg-orange-500',
-        textColor: 'text-white',
-        icon: AlertCircle,
-        urgent: false
-      };
-    }
-    // Very late (probable no-show)
-    else if (diffMinutes < -120) {
-      return {
-        label: 'PROVÁVEL FALTA',
-        color: 'bg-gray-400',
-        textColor: 'text-white',
-        icon: XCircle,
-        urgent: false
-      };
-    }
-    // Pending confirmation
-    else if (appointment.status === 'scheduled') {
-      return {
-        label: 'PENDENTE',
-        color: 'bg-yellow-500',
-        textColor: 'text-white',
-        icon: Calendar,
-        urgent: false
-      };
-    }
-    // Confirmed for later
-    else {
-      return {
-        label: 'CONFIRMADO',
-        color: 'bg-emerald-500',
-        textColor: 'text-white',
-        icon: CheckCircle,
-        urgent: false
-      };
-    }
+
+    return tags;
   };
 
   const getInsuranceBadge = (insurance?: string) => {
@@ -291,33 +154,212 @@ const DashboardPage = () => {
     return insuranceColors[insurance] || insuranceColors.outro;
   };
 
-  const getSmartComplaint = (appointment: Appointment) => {
-    const parts = [];
+  const renderAppointmentCard = (appointment: Appointment, group: TimeGroup, index: number) => {
+    const insurance = getInsuranceBadge(appointment.insurance);
+    const tags = getSmartTags(appointment);
+    const isPast = group === 'past';
+    const isFocus = group === 'focus';
+    const isInProgress = appointment.status === 'in-progress';
 
-    // Base reason
-    if (appointment.reason) {
-      parts.push(appointment.reason);
-    }
+    return (
+      <motion.div
+        key={appointment.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ delay: index * 0.02 }}
+      >
+        <Card
+          className={cn(
+            "border-0 shadow-md hover:shadow-lg transition-all duration-300 group",
+            isPast && "opacity-50",
+            isFocus && "ring-2 ring-[#8C00FF] shadow-xl",
+            isInProgress && "ring-2 ring-green-500 shadow-xl animate-pulse"
+          )}
+        >
+          <CardContent className="p-4 md:p-5">
+            {/* Mobile Layout */}
+            <div className="flex md:hidden items-start gap-3">
+              {/* Avatar */}
+              <div className="relative flex-shrink-0">
+                <img
+                  src={getPatientAvatar(appointment.patientName)}
+                  alt={appointment.patientName}
+                  className="h-12 w-12 rounded-xl object-cover ring-2 ring-white shadow-md"
+                />
+              </div>
 
-    // Add context
-    if (appointment.type === 'follow-up') {
-      if (appointment.hasExamResults) {
-        parts.push('- Trouxe exames');
-      }
-      if (appointment.lastVisitDate) {
-        parts.push(`- Última visita: ${appointment.lastVisitDate}`);
-      }
-    } else if (appointment.isFirstVisit) {
-      parts.push('- Primeira consulta');
-    }
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={cn(
+                    "text-base font-bold",
+                    isPast ? "text-gray-500" : "text-gray-900"
+                  )}>
+                    {appointment.startTime}
+                  </span>
+                  {isInProgress && (
+                    <Badge className="bg-green-600 text-white text-[10px] px-2 py-0.5">
+                      EM ATENDIMENTO
+                    </Badge>
+                  )}
+                  {isFocus && !isInProgress && (
+                    <Badge className="bg-[#8C00FF] text-white text-[10px] px-2 py-0.5">
+                      SUGERIDO
+                    </Badge>
+                  )}
+                </div>
+                <h3 className={cn(
+                  "text-sm font-bold truncate",
+                  isPast ? "text-gray-600" : "text-gray-900"
+                )}>
+                  {appointment.patientName}
+                </h3>
+                {appointment.reason && (
+                  <p className="text-xs text-gray-500 truncate mt-0.5">
+                    {appointment.reason}
+                  </p>
+                )}
+                <div className="flex items-center gap-1 mt-1 flex-wrap">
+                  {insurance && (
+                    <Badge className={cn(insurance.bg, insurance.text, "text-[10px] px-1.5 py-0")}>
+                      {insurance.name}
+                    </Badge>
+                  )}
+                  {tags.filter(t => t !== appointment.insurance).map(tag => (
+                    <Badge key={tag} className="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
 
-    return parts.join(' ');
+              {/* Action */}
+              <div className="flex-shrink-0">
+                {isFocus ? (
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white h-12 px-4"
+                    onClick={() => handleStartConsultation(appointment)}
+                  >
+                    <Stethoscope className="h-4 w-4 mr-1.5" />
+                    Iniciar
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-12 w-12 p-0"
+                    onClick={() => handleStartConsultation(appointment)}
+                  >
+                    <Play className="h-5 w-5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Desktop Layout */}
+            <div className="hidden md:flex items-center gap-4">
+              {/* Time */}
+              <div className="flex flex-col items-center min-w-[80px]">
+                <span className={cn(
+                  "text-2xl font-black",
+                  isPast ? "text-gray-400" : "text-gray-900"
+                )}>
+                  {appointment.startTime}
+                </span>
+                {isInProgress && (
+                  <Badge className="bg-green-600 text-white text-xs px-2 py-0.5 mt-1">
+                    EM ATENDIMENTO
+                  </Badge>
+                )}
+                {isFocus && !isInProgress && (
+                  <Badge className="bg-[#8C00FF] text-white text-xs px-2 py-0.5 mt-1">
+                    SUGERIDO
+                  </Badge>
+                )}
+              </div>
+
+              {/* Avatar */}
+              <div className="relative">
+                <img
+                  src={getPatientAvatar(appointment.patientName)}
+                  alt={appointment.patientName}
+                  className="h-14 w-14 rounded-2xl object-cover ring-2 ring-white shadow-md group-hover:scale-105 transition-transform"
+                />
+              </div>
+
+              {/* Patient Info */}
+              <div className="flex-1 min-w-0">
+                <h3 className={cn(
+                  "text-lg font-bold truncate",
+                  isPast ? "text-gray-600" : "text-gray-900 group-hover:text-[#8C00FF] transition-colors"
+                )}>
+                  {appointment.patientName}
+                </h3>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  {insurance && (
+                    <Badge className={cn(insurance.bg, insurance.text, "text-xs px-2 py-0.5")}>
+                      <Award className="h-3 w-3 mr-0.5" />
+                      {insurance.name}
+                    </Badge>
+                  )}
+                  {tags.filter(t => t !== appointment.insurance).map(tag => (
+                    <Badge key={tag} className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {appointment.patientPhone && (
+                    <span className="text-sm text-gray-500 hidden lg:flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      {appointment.patientPhone}
+                    </span>
+                  )}
+                </div>
+                {appointment.reason && (
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-1">
+                    <FileText className="h-3 w-3 inline mr-1 text-[#8C00FF]" />
+                    {appointment.reason}
+                  </p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                {isFocus ? (
+                  <Button
+                    size="default"
+                    className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white shadow-md hover:shadow-lg"
+                    onClick={() => handleStartConsultation(appointment)}
+                  >
+                    <Stethoscope className="h-4 w-4 mr-2" />
+                    Iniciar Consulta
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleStartConsultation(appointment)}
+                  >
+                    <Play className="h-5 w-5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
   };
+
+  const totalToday = todayAppointments.length;
+  const completedToday = todayAppointments.filter(a => a.status === 'completed').length;
 
   return (
     <AppLayout>
       <div className="min-h-full space-y-6">
-        {/* Hero Section - Calming, Professional */}
+        {/* Simple Hero - Just greeting and count */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -325,7 +367,6 @@ const DashboardPage = () => {
         >
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light"></div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
 
           <div className="relative">
             <motion.div
@@ -336,11 +377,11 @@ const DashboardPage = () => {
             >
               <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold">
                 <Sparkles className="h-3 w-3 mr-1" />
-                Cockpit Médico
+                Launcher
               </Badge>
               <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold">
                 <Clock className="h-3 w-3 mr-1" />
-                {now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} • {now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                {now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
               </Badge>
             </motion.div>
 
@@ -357,124 +398,23 @@ const DashboardPage = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
-              className="text-white/90 font-medium max-w-2xl"
+              className="text-white/90 font-medium"
             >
               {totalToday > 0 ? (
                 <>
-                  Sua agenda está <strong>{completionRate}% concluída</strong> • {' '}
-                  {classifiedAppointments.now.length > 0 && (
-                    <span className="text-blue-200">
-                      <strong>{classifiedAppointments.now.length}</strong> agora • {' '}
-                    </span>
-                  )}
-                  {classifiedAppointments.next.length > 0 && (
-                    <span className="text-green-200">
-                      <strong>{classifiedAppointments.next.length}</strong> próximos • {' '}
-                    </span>
-                  )}
-                  <strong>{completedToday}</strong> de <strong>{totalToday}</strong> finalizados
+                  Você tem <strong>{totalToday}</strong> {totalToday === 1 ? 'agendamento' : 'agendamentos'} hoje
+                  {completedToday > 0 && <> • <strong>{completedToday}</strong> concluído{completedToday !== 1 && 's'}</>}
                 </>
               ) : (
-                'Sem agendamentos para hoje. Aproveite para organizar!'
+                'Sem agendamentos para hoje'
               )}
             </motion.p>
           </div>
         </motion.div>
 
-        {/* Stats Grid - Actionable KPIs */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 + index * 0.05 }}
-              onClick={() => setWorklistFilter(stat.filter)}
-              className="cursor-pointer"
-            >
-              <Card className={cn(
-                "relative overflow-hidden border-0 shadow-md hover:shadow-xl transition-all duration-300 group",
-                worklistFilter === stat.filter && "ring-2 ring-offset-2 ring-[#8C00FF]"
-              )}>
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-5 group-hover:opacity-10 transition-opacity`} />
-
-                <CardContent className="p-4 relative">
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-xl ${stat.iconBg} shadow-sm`}>
-                      <stat.icon className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider truncate">
-                        {stat.title}
-                      </p>
-                      <p className="text-2xl font-black text-gray-900 tracking-tight mt-0.5">
-                        {stat.value}
-                      </p>
-                      <p className="text-[10px] text-gray-500 mt-0.5 truncate">
-                        {stat.description}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Auto-cleanup suggestion */}
-        {classifiedAppointments.probablyNoShow.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="border-orange-200 bg-orange-50">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-orange-900">
-                      {classifiedAppointments.probablyNoShow.length} paciente{classifiedAppointments.probablyNoShow.length > 1 ? 's' : ''} com provável falta
-                    </h3>
-                    <p className="text-sm text-orange-700 mt-1">
-                      Pacientes com mais de 2 horas de atraso. Deseja marcar como falta?
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-orange-300 text-orange-700 hover:bg-orange-100"
-                    onClick={() => {
-                      classifiedAppointments.probablyNoShow.forEach(apt => handleMarkNoShow(apt));
-                    }}
-                  >
-                    Marcar Todas
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Worklist */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-[#450693] to-[#8C00FF] bg-clip-text text-transparent">
-              Lista de Trabalho
-            </h2>
-            {filteredAppointments.length > 0 && (
-              <Button
-                onClick={() => navigate('/appointments')}
-                variant="outline"
-                size="sm"
-                className="border-[#8C00FF] text-[#8C00FF] hover:bg-[#8C00FF] hover:text-white"
-              >
-                Agenda Completa
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            )}
-          </div>
-
-          {filteredAppointments.length === 0 ? (
+        {/* Appointments List - Grouped */}
+        <div className="space-y-6">
+          {patients.length === 0 ? (
             <Card className="border-0 shadow-lg">
               <CardContent className="p-12 text-center">
                 <div className="relative mb-6 inline-block">
@@ -483,241 +423,67 @@ const DashboardPage = () => {
                     <Calendar className="h-10 w-10 text-white" />
                   </div>
                 </div>
-
                 <h3 className="text-xl font-bold mb-2 bg-gradient-to-r from-[#450693] to-[#8C00FF] bg-clip-text text-transparent">
-                  {patients.length === 0 ? 'Importe pacientes primeiro' : 'Nenhum paciente nesta categoria'}
+                  Importe pacientes primeiro
                 </h3>
-
                 <p className="text-gray-600 mb-6">
-                  {patients.length === 0
-                    ? 'Você precisa importar pacientes antes de criar agendamentos'
-                    : `Não há pacientes ${worklistFilter !== 'all' ? `na categoria "${worklistFilter}"` : 'agendados para hoje'}`}
+                  Você precisa importar pacientes antes de criar agendamentos
                 </p>
-
-                <Button
-                  onClick={() => patients.length === 0 ? navigate('/patients') : setWorklistFilter('all')}
-                  className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white shadow-lg hover:shadow-xl"
-                >
-                  {patients.length === 0 ? (
-                    <>
-                      <Users className="mr-2 h-4 w-4" />
-                      Importar Pacientes
-                    </>
-                  ) : (
-                    <>
-                      Ver Todos
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3">
-              <AnimatePresence>
-                {filteredAppointments.map((appointment, index) => {
-                  const priority = getPriorityBadge(appointment);
-                  const PriorityIcon = priority.icon;
-                  const insurance = getInsuranceBadge(appointment.insurance);
-                  const smartComplaint = getSmartComplaint(appointment);
+            <>
+              {/* Focus Patient (Highlighted) */}
+              {groupedAppointments.focus.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                    {groupedAppointments.focus[0].status === 'in-progress' ? 'Em Atendimento' : 'Horário Atual'}
+                  </h2>
+                  <AnimatePresence>
+                    {groupedAppointments.focus.map((apt, idx) =>
+                      renderAppointmentCard(apt, 'focus', idx)
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
-                  return (
-                    <motion.div
-                      key={appointment.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ delay: index * 0.03 }}
-                    >
-                      <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300 group">
-                        <CardContent className="p-4 md:p-5">
-                          {/* Mobile Layout */}
-                          <div className="flex md:hidden flex-col gap-3">
-                            {/* Header */}
-                            <div className="flex items-start gap-3">
-                              <div className="relative flex-shrink-0">
-                                <img
-                                  src={getPatientAvatar(appointment.patientName)}
-                                  alt={appointment.patientName}
-                                  className="h-14 w-14 rounded-xl object-cover ring-2 ring-white shadow-md"
-                                />
-                                {appointment.aiSummaryReady && (
-                                  <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1">
-                                    <Brain className="h-3 w-3 text-white" />
-                                  </div>
-                                )}
-                              </div>
+              {/* Future Patients */}
+              {groupedAppointments.future.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                    Próximos
+                  </h2>
+                  <AnimatePresence>
+                    {groupedAppointments.future.map((apt, idx) =>
+                      renderAppointmentCard(apt, 'future', idx)
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2 mb-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-lg font-bold text-gray-900">{appointment.startTime}</span>
-                                    <Badge className={cn(priority.color, priority.textColor, "text-[10px] px-2 py-0.5")}>
-                                      <PriorityIcon className="h-3 w-3 mr-0.5" />
-                                      {priority.label}
-                                    </Badge>
-                                  </div>
-                                </div>
-                                <h3 className="text-base font-bold text-gray-900 truncate">
-                                  {appointment.patientName}{appointment.patientAge && `, ${appointment.patientAge}a`}
-                                </h3>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                  {insurance && (
-                                    <Badge className={cn(insurance.bg, insurance.text, "text-[10px] px-2 py-0.5")}>
-                                      <Award className="h-2.5 w-2.5 mr-0.5" />
-                                      {insurance.name}
-                                    </Badge>
-                                  )}
-                                  {appointment.isFirstVisit && (
-                                    <Badge className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5">
-                                      1ª Consulta
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+              {/* Past Patients (Faded) */}
+              {groupedAppointments.past.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                    Anteriores
+                  </h2>
+                  <AnimatePresence>
+                    {groupedAppointments.past.map((apt, idx) =>
+                      renderAppointmentCard(apt, 'past', idx)
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
-                            {/* Smart Complaint */}
-                            {smartComplaint && (
-                              <div className="pl-1">
-                                <p className="text-sm text-gray-700 line-clamp-2">
-                                  <FileText className="h-3.5 w-3.5 inline mr-1 text-[#8C00FF]" />
-                                  {smartComplaint}
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Actions */}
-                            <div className="flex gap-2">
-                              {priority.label.includes('ATRASADO') || priority.label === 'PROVÁVEL FALTA' ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1 h-9 border-orange-300 text-orange-700 hover:bg-orange-50"
-                                  onClick={() => handleMarkNoShow(appointment)}
-                                >
-                                  <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                                  Marcar Falta
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1 h-9"
-                                  onClick={() => navigate('/appointments')}
-                                >
-                                  <History className="h-3.5 w-3.5 mr-1.5" />
-                                  Histórico
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                className="flex-1 h-9 bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white"
-                                onClick={() => handleStartConsultation(appointment)}
-                              >
-                                <Stethoscope className="h-3.5 w-3.5 mr-1.5" />
-                                Iniciar
-                              </Button>
-                            </div>
-                          </div>
-
-                          {/* Desktop Layout */}
-                          <div className="hidden md:flex items-center gap-4">
-                            {/* Time + Priority */}
-                            <div className="flex flex-col items-center min-w-[120px]">
-                              <span className="text-2xl font-black text-gray-900">{appointment.startTime}</span>
-                              <Badge className={cn(priority.color, priority.textColor, "text-xs px-2.5 py-0.5 mt-1")}>
-                                <PriorityIcon className="h-3 w-3 mr-1" />
-                                {priority.label}
-                              </Badge>
-                            </div>
-
-                            {/* Avatar */}
-                            <div className="relative">
-                              <img
-                                src={getPatientAvatar(appointment.patientName)}
-                                alt={appointment.patientName}
-                                className="h-16 w-16 rounded-2xl object-cover ring-2 ring-white shadow-md group-hover:scale-105 transition-transform"
-                              />
-                              {appointment.aiSummaryReady && (
-                                <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1.5">
-                                  <Brain className="h-3.5 w-3.5 text-white" />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Patient Info */}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#8C00FF] transition-colors truncate">
-                                {appointment.patientName}{appointment.patientAge && `, ${appointment.patientAge} anos`}
-                              </h3>
-                              <div className="flex items-center gap-3 mt-1 flex-wrap">
-                                {insurance && (
-                                  <Badge className={cn(insurance.bg, insurance.text, "text-xs px-2 py-0.5")}>
-                                    <Award className="h-3 w-3 mr-0.5" />
-                                    {insurance.name}
-                                  </Badge>
-                                )}
-                                {appointment.isFirstVisit && (
-                                  <Badge className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5">
-                                    Primeira Consulta
-                                  </Badge>
-                                )}
-                                {appointment.patientPhone && (
-                                  <span className="text-sm text-gray-500 hidden lg:flex items-center gap-1">
-                                    <Phone className="h-3.5 w-3.5" />
-                                    {appointment.patientPhone}
-                                  </span>
-                                )}
-                              </div>
-                              {smartComplaint && (
-                                <p className="text-sm text-gray-600 mt-1 line-clamp-1">
-                                  <FileText className="h-3.5 w-3.5 inline mr-1 text-[#8C00FF]" />
-                                  {smartComplaint}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex gap-2">
-                              {priority.label.includes('ATRASADO') || priority.label === 'PROVÁVEL FALTA' ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                                  onClick={() => handleMarkNoShow(appointment)}
-                                >
-                                  <XCircle className="h-4 w-4 mr-1.5" />
-                                  Marcar Falta
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => navigate('/appointments')}
-                                >
-                                  <History className="h-4 w-4 mr-1.5" />
-                                  Histórico
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white shadow-md hover:shadow-lg"
-                                onClick={() => handleStartConsultation(appointment)}
-                              >
-                                <Stethoscope className="h-4 w-4 mr-1.5" />
-                                Iniciar Consulta
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
+              {totalToday === 0 && (
+                <Card className="border-0 shadow-lg">
+                  <CardContent className="p-12 text-center">
+                    <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-600">Nenhum agendamento para hoje</p>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </div>
       </div>

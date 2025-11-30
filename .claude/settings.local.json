@@ -35,7 +35,8 @@
       "Bash(cp:*)",
       "Bash(find:*)",
       "Bash(tree:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
