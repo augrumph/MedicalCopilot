@@ -1,9 +1,10 @@
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, EyeOff, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
+import { useAppStore } from '@/stores/appStore';
 
 interface AppNavbarProps {
   title?: string;
@@ -11,6 +12,8 @@ interface AppNavbarProps {
 }
 
 export function AppNavbar({ title, description }: AppNavbarProps) {
+  const { privacyMode, togglePrivacyMode } = useAppStore();
+
   return (
     <header
       className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-gray-200 bg-background px-4 sm:px-6"
@@ -46,6 +49,24 @@ export function AppNavbar({ title, description }: AppNavbarProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Privacy Mode Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`relative h-9 w-9 sm:h-10 sm:w-10 hover:bg-gray-100 transition-colors ${
+            privacyMode ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : ''
+          }`}
+          onClick={togglePrivacyMode}
+          aria-label={privacyMode ? 'Desativar Modo Privacidade' : 'Ativar Modo Privacidade'}
+          title={privacyMode ? 'Modo Privacidade Ativo' : 'Ativar Modo Privacidade'}
+        >
+          {privacyMode ? (
+            <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />
+          ) : (
+            <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700" />
+          )}
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"

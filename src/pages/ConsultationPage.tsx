@@ -39,6 +39,8 @@ import { SessionThemesAndGoals } from '@/components/psychology/SessionThemesAndG
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export function ConsultationPage() {
   const navigate = useNavigate();
@@ -55,6 +57,10 @@ export function ConsultationPage() {
   const [showNoteSection, setShowNoteSection] = useState(false);
   const [activeTab, setActiveTab] = useState<'ai' | 'diagnosis' | 'medication' | 'prescription' | 'themes' | 'interventions'>('ai');
   const [prescriptionGenerated, setPrescriptionGenerated] = useState(false);
+
+  // LGPD: Consent Modal
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [dontShowConsentToday, setDontShowConsentToday] = useState(false);
 
   useEffect(() => {
     if (!isListening) return;
@@ -89,7 +95,38 @@ export function ConsultationPage() {
   }, [isListening, currentConsultation?.transcript, updateTranscript]);
 
   const handleToggleListen = () => {
-    setIsListening(!isListening);
+    if (!isListening) {
+      // Check if we should show consent modal
+      const consentDismissedToday = sessionStorage.getItem('consentDismissedToday');
+      const today = new Date().toDateString();
+
+      if (consentDismissedToday !== today) {
+        setShowConsentModal(true);
+      } else {
+        startRecording();
+      }
+    } else {
+      setIsListening(false);
+    }
+  };
+
+  const handleConsentAccepted = () => {
+    if (dontShowConsentToday) {
+      const today = new Date().toDateString();
+      sessionStorage.setItem('consentDismissedToday', today);
+    }
+    setShowConsentModal(false);
+    startRecording();
+  };
+
+  const startRecording = () => {
+    setIsListening(true);
+    // Log consent obtained event (would send to backend in production)
+    console.log('[LGPD] Consent obtained:', {
+      timestamp: new Date().toISOString(),
+      patientId: selectedPatient?.id,
+      consultationId: currentConsultation?.id,
+    });
   };
 
   const handleGenerateNote = async () => {
@@ -228,12 +265,88 @@ export function ConsultationPage() {
 
   return (
     <AppLayout>
+      {/* 2.2. LGPD: Modal de Consentimento */}
+      <Dialog open={showConsentModal} onOpenChange={setShowConsentModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Obter Consentimento Verbal</DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 mt-2">
+              Antes de iniciar a gravação, certifique-se de obter o consentimento do paciente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 my-4">
+            <p className="text-sm text-gray-700 font-medium mb-2">
+              📝 Sugestão de script:
+            </p>
+            <p className="text-sm text-gray-900 italic">
+              "{selectedPatient?.name ? selectedPatient.name.split(' ')[0] : 'Paciente'}, vou utilizar uma IA para transcrever nossa conversa e me ajudar nas anotações, tudo seguro e sigiloso. Tudo bem?"
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="dontShowToday"
+              checked={dontShowConsentToday}
+              onCheckedChange={(checked) => setDontShowConsentToday(checked as boolean)}
+            />
+            <label
+              htmlFor="dontShowToday"
+              className="text-sm text-gray-600 cursor-pointer select-none"
+            >
+              Não mostrar novamente hoje
+            </label>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowConsentModal(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConsentAccepted}
+              className="bg-[#8C00FF] hover:bg-[#450693] text-white"
+            >
+              Paciente Concordou (Iniciar)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex flex-col h-full bg-gray-50/50">
+        {/* 2.3. LGPD: Indicador de Gravação Pulsante */}
+        <AnimatePresence>
+          {isListening && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white py-2 px-4 shadow-lg"
+            >
+              <div className="flex items-center justify-center gap-2">
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="h-3 w-3 rounded-full bg-white"
+                />
+                <span className="font-bold text-sm">
+                  🔴 Gravando áudio para transcrição (Seguro)
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Header Fixo com Glassmorphism Refinado */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex-none z-20 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 sticky top-0 shadow-sm"
+          className={cn(
+            "flex-none z-20 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 sticky shadow-sm transition-all",
+            isListening ? "top-10" : "top-0"
+          )}
         >
           <div className="w-full py-3">
             <div className="flex items-center justify-between gap-4">

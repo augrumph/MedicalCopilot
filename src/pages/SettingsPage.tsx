@@ -6,12 +6,13 @@ import {
   FileText,
   Stethoscope,
   Shield,
-  
   Bell,
   Globe,
   Lock,
   Save,
-  ArrowLeft
+  ArrowLeft,
+  ExternalLink,
+  Trash2
 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -20,35 +21,130 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppStore } from '@/stores/appStore';
 import { motion, } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { PrivacyPolicy, DPA, ConsentLogs, DataDeletion } from '@/components/legal';
 
 function SettingsPage() {
   const navigate = useNavigate();
-  const { 
-    doctorName, 
-    doctorSpecialty, 
-    clinicName, 
-    clinicAddress, 
-    clinicLocation, 
-    clinicPhone, 
+  const {
+    doctorName,
+    doctorSpecialty,
+    clinicName,
+    clinicAddress,
+    clinicLocation,
+    clinicPhone,
     clinicEmail,
+    autoDeleteAudio,
     setDoctorName,
     setDoctorSpecialty,
     setClinicName,
     setClinicAddress,
     setClinicLocation,
     setClinicPhone,
-    setClinicEmail
+    setClinicEmail,
+    setAutoDeleteAudio
   } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'prescription' | 'ai' | 'security' | 'notification' | 'general'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'prescription' | 'ai' | 'security' | 'notification' | 'general' | 'lgpd'>('profile');
   const [crm, setCRM] = useState('123456');
   const [uf, setUF] = useState('SP');
 
+  // LGPD Modals
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showDPAModal, setShowDPAModal] = useState(false);
+  const [showLogsModal, setShowLogsModal] = useState(false);
+  const [showDeletionModal, setShowDeletionModal] = useState(false);
+
+  const handleSelectPatient = () => {
+    setShowDeletionModal(false);
+    alert('Em desenvolvimento: Seleção de paciente para exclusão');
+  };
+
+  const handleDeleteAccount = () => {
+    setShowDeletionModal(false);
+    if (confirm('ATENÇÃO: Você está prestes a solicitar a exclusão PERMANENTE de sua conta. Esta ação NÃO pode ser desfeita. Deseja continuar?')) {
+      alert('Solicitação enviada com sucesso! Nossa equipe entrará em contato em até 48 horas para confirmar a exclusão e fornecer instruções para exportação dos dados.');
+    }
+  };
+
   return (
     <AppLayout>
+      {/* Modal: Política de Privacidade */}
+      <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white">
+            <DialogTitle className="text-2xl font-bold text-gray-900">Política de Privacidade</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[calc(85vh-120px)] px-6 py-4">
+            <PrivacyPolicy />
+          </ScrollArea>
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <Button onClick={() => setShowPrivacyModal(false)} className="w-full">
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: DPA */}
+      <Dialog open={showDPAModal} onOpenChange={setShowDPAModal}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white">
+            <DialogTitle className="text-2xl font-bold text-gray-900">Data Processing Agreement (DPA)</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[calc(85vh-120px)] px-6 py-4">
+            <DPA />
+          </ScrollArea>
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <Button onClick={() => setShowDPAModal(false)} className="w-full">
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Logs de Consentimento */}
+      <Dialog open={showLogsModal} onOpenChange={setShowLogsModal}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white">
+            <DialogTitle className="text-2xl font-bold text-gray-900">Logs de Consentimento</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 py-4 h-[calc(85vh-120px)] overflow-hidden">
+            <ConsentLogs />
+          </div>
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <Button onClick={() => setShowLogsModal(false)} className="w-full">
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Exclusão de Dados */}
+      <Dialog open={showDeletionModal} onOpenChange={setShowDeletionModal}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-white">
+            <DialogTitle className="text-2xl font-bold text-gray-900">Direito ao Esquecimento</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[calc(85vh-120px)] px-6 py-4">
+            <DataDeletion
+              onSelectPatient={handleSelectPatient}
+              onDeleteAccount={handleDeleteAccount}
+              doctorName={doctorName}
+            />
+          </ScrollArea>
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <Button onClick={() => setShowDeletionModal(false)} variant="outline" className="w-full">
+              Cancelar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="flex flex-col h-[calc(100vh-4rem)]">
         {/* Header com botão de voltar */}
         <motion.div
@@ -91,8 +187,9 @@ function SettingsPage() {
             {[
               { id: 'profile', label: 'Perfil', icon: User },
               { id: 'prescription', label: 'Prescrições', icon: FileText },
+              { id: 'lgpd', label: 'LGPD', icon: Shield },
               { id: 'ai', label: 'Assistente IA', icon: Brain },
-              { id: 'security', label: 'Segurança', icon: Shield },
+              { id: 'security', label: 'Segurança', icon: Lock },
               { id: 'notification', label: 'Notificações', icon: Bell },
               { id: 'general', label: 'Geral', icon: Globe },
             ].map((tab) => {
@@ -313,6 +410,123 @@ function SettingsPage() {
                   </div>
                 )}
 
+                {/* Aba LGPD */}
+                {activeTab === 'lgpd' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center">
+                        <Shield className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900">LGPD & Compliance</h3>
+                        <p className="text-sm text-gray-600">Configurações de privacidade e conformidade legal</p>
+                      </div>
+                    </div>
+
+                    {/* Info Box LGPD */}
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                      <div className="flex items-start gap-3">
+                        <Shield className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-gray-700 font-medium mb-2">
+                            MedicalCopilot atua como <strong>Operador de Dados</strong> conforme LGPD (Lei Geral de Proteção de Dados).
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            ✓ Seus dados médicos não são usados para treinar modelos públicos de IA<br/>
+                            ✓ Todas as transcrições são criptografadas em trânsito e em repouso<br/>
+                            ✓ Você tem controle total sobre retenção e exclusão de dados
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Toggle Auto-Delete Audio */}
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3 p-4 bg-white rounded-lg border-2 border-purple-200">
+                        <Checkbox
+                          id="autoDeleteAudioSettings"
+                          checked={autoDeleteAudio}
+                          onCheckedChange={(checked) => setAutoDeleteAudio(checked as boolean)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <label
+                            htmlFor="autoDeleteAudioSettings"
+                            className="text-sm font-medium text-gray-700 cursor-pointer select-none block"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Trash2 className="h-4 w-4 text-purple-600" />
+                              <span>Excluir áudio original após gerar transcrição</span>
+                              <Badge className="bg-purple-100 text-purple-700">Recomendado</Badge>
+                            </div>
+                          </label>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Quando ativado, os arquivos de áudio das consultas são automaticamente deletados após a geração da nota clínica. Isso reduz o risco de vazamento de dados e mantém apenas o texto necessário para o prontuário.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 block">Política de Privacidade</label>
+                          <p className="text-xs text-gray-500">Termos de uso e política de dados</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="border-gray-300"
+                          onClick={() => setShowPrivacyModal(true)}
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Ver Documento
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 block">DPA (Data Processing Agreement)</label>
+                          <p className="text-xs text-gray-500">Acordo de Processamento de Dados</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="border-gray-300"
+                          onClick={() => setShowDPAModal(true)}
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Ver Acordo
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 block">Termos de Consentimento</label>
+                          <p className="text-xs text-gray-500">Logs de consentimento de gravação</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="border-gray-300"
+                          onClick={() => setShowLogsModal(true)}
+                        >
+                          Visualizar Logs
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 block">Solicitar Exclusão de Dados</label>
+                          <p className="text-xs text-gray-500">Direito ao esquecimento (LGPD Art. 18)</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="border-red-300 text-red-600 hover:bg-red-50"
+                          onClick={() => setShowDeletionModal(true)}
+                        >
+                          Solicitar Exclusão
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Aba Assistente IA */}
                 {activeTab === 'ai' && (
                   <div className="space-y-6">
@@ -389,7 +603,7 @@ function SettingsPage() {
                   <div className="space-y-6">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#10B981] to-[#059669] flex items-center justify-center">
-                        <Shield className="h-5 w-5 text-white" />
+                        <Lock className="h-5 w-5 text-white" />
                       </div>
                       <div>
                         <h3 className="font-bold text-lg text-gray-900">Segurança da Conta</h3>

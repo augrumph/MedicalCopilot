@@ -1,31 +1,41 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
-import { Stethoscope, Users, Calendar, ArrowRight, Sparkles, Clock, Phone, FileText, CheckCircle, AlertCircle, History, UserCheck, XCircle, Brain, Award } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Stethoscope,
+  Users,
+  ArrowRight,
+  PlayCircle,
+  Clock,
+  FileText,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useAppStore } from '@/stores/appStore';
 import { useAppointmentStore } from '@/stores/appointmentStore';
 import { initializeMockAppointments } from '@/lib/data/mockAppointments';
-import { getPatientAvatar, cn } from '@/lib/utils';
+import { getPatientInitials, getInitialsColor, cn } from '@/lib/utils';
 import type { Appointment } from '@/lib/types/appointment';
-
-type WorklistFilter = 'all' | 'urgent' | 'now' | 'next' | 'pending';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const { user, patients, startConsultation } = useAppStore();
-  const { appointments, addAppointment, clearAllAppointments, updateAppointment } = useAppointmentStore();
+  const { user, startConsultation, patients, privacyMode, consultations } = useAppStore();
+  const { appointments, addAppointment, clearAllAppointments } = useAppointmentStore();
   const [isInitialized, setIsInitialized] = useState(false);
-  const [worklistFilter, setWorklistFilter] = useState<WorklistFilter>('all');
 
-  // Get today's date in YYYY-MM-DD format
+  // Get today's date
   const today = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
   const now = new Date();
 
-  // Dynamic greeting based on time
+  // Dynamic greeting
   const getGreeting = () => {
     const hour = now.getHours();
     if (hour < 12) return 'Bom dia';
@@ -33,693 +43,418 @@ const DashboardPage = () => {
     return 'Boa noite';
   };
 
-  // Filter appointments for today
+  // Initialize mock data
+  useEffect(() => {
+    if (!isInitialized && appointments.length === 0) {
+      clearAllAppointments();
+      const mockAppointments = initializeMockAppointments(patients);
+      mockAppointments.forEach(apt => addAppointment(apt));
+      setIsInitialized(true);
+    }
+  }, [isInitialized, appointments.length, addAppointment, clearAllAppointments, patients]);
+
+  // Filter today's appointments
   const todayAppointments = useMemo(() => {
     return appointments
       .filter(apt => apt.date === today)
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [appointments, today]);
 
-  // Classify appointments with SMART priority logic
-  const classifiedAppointments = useMemo(() => {
-    const classified = {
-      urgent: [] as Appointment[], // Currently happening or critical
-      now: [] as Appointment[], // Within next 15 minutes
-      next: [] as Appointment[], // Within 15-30 minutes
-      late: [] as Appointment[], // Late but not too late (15-120 min)
-      probablyNoShow: [] as Appointment[], // Very late (>2 hours)
-      pending: [] as Appointment[], // Scheduled but not confirmed
-      scheduled: [] as Appointment[], // Confirmed for later
-    };
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const total = todayAppointments.length;
+    const completed = todayAppointments.filter(a => a.status === 'completed').length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-    todayAppointments.forEach(apt => {
-      // Skip already completed, cancelled or no-show
-      if (apt.status === 'completed' || apt.status === 'cancelled' || apt.status === 'no-show') {
-        return;
-      }
+    return { total, completed, completionRate };
+  }, [todayAppointments]);
+
+  // Find current patient (within ±30min)
+  const currentPatient = useMemo(() => {
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    return todayAppointments.find(apt => {
+      if (apt.status === 'in-progress') return true;
+      if (apt.status === 'completed' || apt.status === 'cancelled') return false;
 
       const [hours, minutes] = apt.startTime.split(':').map(Number);
-      const appointmentTime = new Date();
-      appointmentTime.setHours(hours, minutes, 0, 0);
-      const diffMinutes = Math.floor((appointmentTime.getTime() - now.getTime()) / 60000);
+      const aptMinutes = hours * 60 + minutes;
+      const diff = Math.abs(aptMinutes - currentMinutes);
 
-      // In-progress appointments are URGENT
-      if (apt.status === 'in-progress') {
-        classified.urgent.push(apt);
-      }
-      // Within next 15 minutes - AGORA (NOW)
-      else if (diffMinutes >= -5 && diffMinutes <= 15) {
-        classified.now.push(apt);
-      }
-      // Next 15-30 minutes - PRÓXIMO
-      else if (diffMinutes > 15 && diffMinutes <= 30) {
-        classified.next.push(apt);
-      }
-      // Late 15-120 minutes - ATRASADO (not urgent, just late)
-      else if (diffMinutes < -15 && diffMinutes >= -120) {
-        classified.late.push(apt);
-      }
-      // Very late (>2 hours) - PROVÁVEL FALTA
-      else if (diffMinutes < -120) {
-        classified.probablyNoShow.push(apt);
-      }
-      // Not confirmed - PENDENTE
-      else if (apt.status === 'scheduled') {
-        classified.pending.push(apt);
-      }
-      // Confirmed for later - CONFIRMADO
-      else {
-        classified.scheduled.push(apt);
+      return diff <= 30;
+    });
+  }, [todayAppointments, now]);
+
+  // Split appointments into future and past
+  const { futureAppointments, pastAppointments } = useMemo(() => {
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const future: Appointment[] = [];
+    const past: Appointment[] = [];
+
+    todayAppointments.forEach(apt => {
+      // Skip the current patient (already in hero)
+      if (currentPatient && apt.id === currentPatient.id) return;
+
+      const [hours, minutes] = apt.startTime.split(':').map(Number);
+      const aptMinutes = hours * 60 + minutes;
+
+      if (aptMinutes > currentMinutes || apt.status === 'scheduled') {
+        future.push(apt);
+      } else {
+        past.push(apt);
       }
     });
 
-    return classified;
-  }, [todayAppointments, now]);
+    return { futureAppointments: future, pastAppointments: past };
+  }, [todayAppointments, currentPatient, now]);
 
-  // Filter based on selected filter
-  const filteredAppointments = useMemo(() => {
-    if (worklistFilter === 'all') {
-      return [
-        ...classifiedAppointments.urgent,
-        ...classifiedAppointments.now,
-        ...classifiedAppointments.next,
-        ...classifiedAppointments.late,
-        ...classifiedAppointments.probablyNoShow,
-        ...classifiedAppointments.pending,
-        ...classifiedAppointments.scheduled,
-      ];
-    } else if (worklistFilter === 'urgent') {
-      return [...classifiedAppointments.urgent, ...classifiedAppointments.now];
-    } else if (worklistFilter === 'now') {
-      return classifiedAppointments.now;
-    } else if (worklistFilter === 'next') {
-      return classifiedAppointments.next;
-    } else {
-      return classifiedAppointments.pending;
-    }
-  }, [worklistFilter, classifiedAppointments]);
-
-  // Initialize appointments from patients if needed
-  useEffect(() => {
-    const hasAppointmentsToday = appointments.some(apt => apt.date === today);
-
-    if (!isInitialized && patients.length > 0 && (appointments.length === 0 || !hasAppointmentsToday)) {
-      if (appointments.length > 0 && !hasAppointmentsToday) {
-        clearAllAppointments();
-      }
-
-      const mockAppointments = initializeMockAppointments(patients);
-      mockAppointments.forEach(apt => {
-        const { id, createdAt, updatedAt, ...data } = apt;
-        addAppointment(data);
-      });
-      setIsInitialized(true);
-    }
-  }, [isInitialized, appointments, patients, today, addAppointment, clearAllAppointments]);
-
-  // Calculate stats
-  const completedToday = todayAppointments.filter(a => a.status === 'completed').length;
-  const totalToday = todayAppointments.filter(a => a.status !== 'no-show' && a.status !== 'cancelled').length;
-  const completionRate = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
-
-  const stats = [
-    {
-      title: 'Agora',
-      value: classifiedAppointments.now.length.toString(),
-      icon: Clock,
-      description: 'próximos 15min',
-      gradient: 'from-[#8C00FF] to-[#450693]',
-      iconBg: 'bg-[#8C00FF]',
-      filter: 'now' as WorklistFilter,
-    },
-    {
-      title: 'Próximos',
-      value: classifiedAppointments.next.length.toString(),
-      icon: UserCheck,
-      description: 'em 30 minutos',
-      gradient: 'from-[#FFC400] to-[#FF9500]',
-      iconBg: 'bg-[#FFC400]',
-      filter: 'next' as WorklistFilter,
-    },
-    {
-      title: 'Pendentes',
-      value: classifiedAppointments.pending.length.toString(),
-      icon: AlertCircle,
-      description: 'não confirmados',
-      gradient: 'from-[#FF9500] to-[#FF6B00]',
-      iconBg: 'bg-[#FF9500]',
-      filter: 'pending' as WorklistFilter,
-    },
-    {
-      title: 'Concluídos',
-      value: `${completionRate}%`,
-      icon: CheckCircle,
-      description: `${completedToday} de ${totalToday}`,
-      gradient: 'from-[#00D9A5] to-[#00B386]',
-      iconBg: 'bg-[#00D9A5]',
-      filter: 'all' as WorklistFilter,
-    },
-  ];
-
+  // Handle start consultation
   const handleStartConsultation = (appointment: Appointment) => {
-    const patient = patients.find(p => p.id === appointment.patientId) ||
-      patients.find(p => p.name.toLowerCase() === appointment.patientName.toLowerCase());
-
+    const patient = patients.find(p => p.id === appointment.patientId);
     if (patient) {
-      // Update appointment status to in-progress
-      updateAppointment(appointment.id, { status: 'in-progress' });
       startConsultation(patient);
       navigate('/consultation');
     }
   };
 
-  const handleMarkNoShow = (appointment: Appointment) => {
-    updateAppointment(appointment.id, { status: 'no-show' });
-  };
-
-  const getPriorityBadge = (appointment: Appointment) => {
-    const [hours, minutes] = appointment.startTime.split(':').map(Number);
-    const appointmentTime = new Date();
-    appointmentTime.setHours(hours, minutes, 0, 0);
-    const diffMinutes = Math.floor((appointmentTime.getTime() - now.getTime()) / 60000);
-
-    // In progress
-    if (appointment.status === 'in-progress') {
-      return {
-        label: 'EM ATENDIMENTO',
-        color: 'bg-purple-600',
-        textColor: 'text-white',
-        icon: Stethoscope,
-        urgent: true
-      };
-    }
-    // Now (within next 15 min or slightly late)
-    else if (diffMinutes >= -5 && diffMinutes <= 15) {
-      return {
-        label: 'AGORA',
-        color: 'bg-blue-600',
-        textColor: 'text-white',
-        icon: Clock,
-        urgent: false
-      };
-    }
-    // Next 15-30 min
-    else if (diffMinutes > 15 && diffMinutes <= 30) {
-      return {
-        label: 'PRÓXIMO',
-        color: 'bg-green-600',
-        textColor: 'text-white',
-        icon: UserCheck,
-        urgent: false
-      };
-    }
-    // Late 15-120 min
-    else if (diffMinutes < -15 && diffMinutes >= -120) {
-      const minutesLate = Math.abs(diffMinutes);
-      return {
-        label: `ATRASADO ${minutesLate}min`,
-        color: 'bg-orange-500',
-        textColor: 'text-white',
-        icon: AlertCircle,
-        urgent: false
-      };
-    }
-    // Very late (probable no-show)
-    else if (diffMinutes < -120) {
-      return {
-        label: 'PROVÁVEL FALTA',
-        color: 'bg-gray-400',
-        textColor: 'text-white',
-        icon: XCircle,
-        urgent: false
-      };
-    }
-    // Pending confirmation
-    else if (appointment.status === 'scheduled') {
-      return {
-        label: 'PENDENTE',
-        color: 'bg-yellow-500',
-        textColor: 'text-white',
-        icon: Calendar,
-        urgent: false
-      };
-    }
-    // Confirmed for later
-    else {
-      return {
-        label: 'CONFIRMADO',
-        color: 'bg-emerald-500',
-        textColor: 'text-white',
-        icon: CheckCircle,
-        urgent: false
-      };
-    }
-  };
-
-  const getInsuranceBadge = (insurance?: string) => {
-    if (!insurance) return null;
-
-    const insuranceColors: Record<string, { bg: string; text: string; name: string }> = {
-      unimed: { bg: 'bg-green-100', text: 'text-green-700', name: 'Unimed' },
-      bradesco: { bg: 'bg-red-100', text: 'text-red-700', name: 'Bradesco' },
-      amil: { bg: 'bg-blue-100', text: 'text-blue-700', name: 'Amil' },
-      sulamerica: { bg: 'bg-indigo-100', text: 'text-indigo-700', name: 'SulAmérica' },
-      particular: { bg: 'bg-purple-100', text: 'text-purple-700', name: 'Particular' },
-      outro: { bg: 'bg-gray-100', text: 'text-gray-700', name: 'Outro' },
-    };
-
-    return insuranceColors[insurance] || insuranceColors.outro;
-  };
-
-  const getSmartComplaint = (appointment: Appointment) => {
-    const parts = [];
-
-    // Base reason
-    if (appointment.reason) {
-      parts.push(appointment.reason);
-    }
-
-    // Add context
-    if (appointment.type === 'follow-up') {
-      if (appointment.hasExamResults) {
-        parts.push('- Trouxe exames');
-      }
-      if (appointment.lastVisitDate) {
-        parts.push(`- Última visita: ${appointment.lastVisitDate}`);
-      }
-    } else if (appointment.isFirstVisit) {
-      parts.push('- Primeira consulta');
-    }
-
-    return parts.join(' ');
+  // Get last consultation for a patient
+  const getLastConsultation = (patientId: string) => {
+    const patientConsultations = consultations
+      .filter(c => c.patientId === patientId)
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+    return patientConsultations[0];
   };
 
   return (
     <AppLayout>
       <div className="min-h-full space-y-6">
-        {/* Hero Section - Calming, Professional */}
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#450693] via-[#8C00FF] to-[#6B46C1] p-6 md:p-8 shadow-2xl"
         >
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light"></div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
-
-          <div className="relative">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="flex items-center gap-2 mb-2"
-            >
-              <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold">
-                <Sparkles className="h-3 w-3 mr-1" />
-                Cockpit Médico
-              </Badge>
-              <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold">
-                <Clock className="h-3 w-3 mr-1" />
-                {now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} • {now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </Badge>
-            </motion.div>
-
-            <motion.h1
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-3xl md:text-4xl font-black text-white tracking-tight mb-2"
-            >
-              {getGreeting()}, Dr. {user?.name?.split(' ')[0]}! 👋
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-white/90 font-medium max-w-2xl"
-            >
-              {totalToday > 0 ? (
-                <>
-                  Sua agenda está <strong>{completionRate}% concluída</strong> • {' '}
-                  {classifiedAppointments.now.length > 0 && (
-                    <span className="text-blue-200">
-                      <strong>{classifiedAppointments.now.length}</strong> agora • {' '}
-                    </span>
-                  )}
-                  {classifiedAppointments.next.length > 0 && (
-                    <span className="text-green-200">
-                      <strong>{classifiedAppointments.next.length}</strong> próximos • {' '}
-                    </span>
-                  )}
-                  <strong>{completedToday}</strong> de <strong>{totalToday}</strong> finalizados
-                </>
-              ) : (
-                'Sem agendamentos para hoje. Aproveite para organizar!'
-              )}
-            </motion.p>
-          </div>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
+            {getGreeting()}, {user?.name || 'Dr. Luzzi'}
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            {stats.completed} de {stats.total} pacientes atendidos hoje
+          </p>
         </motion.div>
 
-        {/* Stats Grid - Actionable KPIs */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 + index * 0.05 }}
-              onClick={() => setWorklistFilter(stat.filter)}
-              className="cursor-pointer"
-            >
-              <Card className={cn(
-                "relative overflow-hidden border-0 shadow-md hover:shadow-xl transition-all duration-300 group",
-                worklistFilter === stat.filter && "ring-2 ring-offset-2 ring-[#8C00FF]"
-              )}>
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-5 group-hover:opacity-10 transition-opacity`} />
-
-                <CardContent className="p-4 relative">
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-xl ${stat.iconBg} shadow-sm`}>
-                      <stat.icon className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider truncate">
-                        {stat.title}
-                      </p>
-                      <p className="text-2xl font-black text-gray-900 tracking-tight mt-0.5">
-                        {stat.value}
-                      </p>
-                      <p className="text-[10px] text-gray-500 mt-0.5 truncate">
-                        {stat.description}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Auto-cleanup suggestion */}
-        {classifiedAppointments.probablyNoShow.length > 0 && (
+        {/* Paciente Atual */}
+        {currentPatient && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
           >
-            <Card className="border-orange-200 bg-orange-50">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-orange-900">
-                      {classifiedAppointments.probablyNoShow.length} paciente{classifiedAppointments.probablyNoShow.length > 1 ? 's' : ''} com provável falta
-                    </h3>
-                    <p className="text-sm text-orange-700 mt-1">
-                      Pacientes com mais de 2 horas de atraso. Deseja marcar como falta?
-                    </p>
+            <Card className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#450693] via-[#8C00FF] to-[#FF3F7F] shadow-xl border-0">
+              <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light"></div>
+              <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+
+              <CardContent className="relative p-4 sm:p-5 md:p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                    <Avatar className="h-12 w-12 sm:h-14 sm:w-14 border-2 border-white/30 shadow-lg flex-shrink-0">
+                      <AvatarFallback className="bg-white/20 text-white backdrop-blur-sm font-bold text-base sm:text-lg">
+                        {getPatientInitials(currentPatient.patientName)}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    <div className="flex-1 min-w-0">
+                      <h2 className={cn(
+                        "text-lg sm:text-xl font-bold text-white mb-1 tracking-tight truncate",
+                        privacyMode && "blur-md select-none"
+                      )}>
+                        {currentPatient.patientName}
+                      </h2>
+                      <p className="text-xs sm:text-sm text-white/80 font-medium truncate">
+                        {currentPatient.startTime} • {currentPatient.reason}
+                      </p>
+                    </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-orange-300 text-orange-700 hover:bg-orange-100"
-                    onClick={() => {
-                      classifiedAppointments.probablyNoShow.forEach(apt => handleMarkNoShow(apt));
-                    }}
-                  >
-                    Marcar Todas
-                  </Button>
+
+                  <div className="flex items-center gap-2 w-full">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/history')}
+                      className="flex-1 h-9 sm:h-10 text-xs sm:text-sm bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50 backdrop-blur-sm"
+                    >
+                      <Clock className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span className="hidden xs:inline">Histórico</span>
+                      <span className="xs:hidden">Hist.</span>
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      onClick={() => handleStartConsultation(currentPatient)}
+                      className="flex-1 h-9 sm:h-10 text-xs sm:text-sm bg-white text-[#8C00FF] hover:bg-white/90 font-bold shadow-md"
+                    >
+                      {currentPatient.status === 'in-progress' ? (
+                        <>
+                          <ArrowRight className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          Retomar
+                        </>
+                      ) : (
+                        <>
+                          <Stethoscope className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          Iniciar
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
         )}
 
-        {/* Worklist */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-[#450693] to-[#8C00FF] bg-clip-text text-transparent">
-              Lista de Trabalho
-            </h2>
-            {filteredAppointments.length > 0 && (
-              <Button
-                onClick={() => navigate('/appointments')}
-                variant="outline"
-                size="sm"
-                className="border-[#8C00FF] text-[#8C00FF] hover:bg-[#8C00FF] hover:text-white"
-              >
-                Agenda Completa
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            )}
-          </div>
+        {/* Próximos Agendamentos */}
+        {futureAppointments.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-3"
+          >
+            <h3 className="text-base font-semibold text-foreground">Próximos</h3>
 
-          {filteredAppointments.length === 0 ? (
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-12 text-center">
-                <div className="relative mb-6 inline-block">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#8C00FF] to-[#450693] rounded-full blur-2xl opacity-20 animate-pulse"></div>
-                  <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center shadow-xl">
-                    <Calendar className="h-10 w-10 text-white" />
-                  </div>
-                </div>
+            {futureAppointments.map((apt, index) => {
+              const initials = getPatientInitials(apt.patientName);
+              const colors = getInitialsColor(apt.patientName);
+              const lastConsultation = getLastConsultation(apt.patientId);
 
-                <h3 className="text-xl font-bold mb-2 bg-gradient-to-r from-[#450693] to-[#8C00FF] bg-clip-text text-transparent">
-                  {patients.length === 0 ? 'Importe pacientes primeiro' : 'Nenhum paciente nesta categoria'}
-                </h3>
-
-                <p className="text-gray-600 mb-6">
-                  {patients.length === 0
-                    ? 'Você precisa importar pacientes antes de criar agendamentos'
-                    : `Não há pacientes ${worklistFilter !== 'all' ? `na categoria "${worklistFilter}"` : 'agendados para hoje'}`}
-                </p>
-
-                <Button
-                  onClick={() => patients.length === 0 ? navigate('/patients') : setWorklistFilter('all')}
-                  className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white shadow-lg hover:shadow-xl"
+              return (
+                <motion.div
+                  key={apt.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.05 * index }}
                 >
-                  {patients.length === 0 ? (
-                    <>
-                      <Users className="mr-2 h-4 w-4" />
-                      Importar Pacientes
-                    </>
-                  ) : (
-                    <>
-                      Ver Todos
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              <AnimatePresence>
-                {filteredAppointments.map((appointment, index) => {
-                  const priority = getPriorityBadge(appointment);
-                  const PriorityIcon = priority.icon;
-                  const insurance = getInsuranceBadge(appointment.insurance);
-                  const smartComplaint = getSmartComplaint(appointment);
+                  <Card className="border border-gray-200 bg-white hover:shadow-sm transition-all">
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 w-full">
+                          <div className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[40px] sm:min-w-[45px]">
+                            {apt.startTime}
+                          </div>
 
-                  return (
-                    <motion.div
-                      key={appointment.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ delay: index * 0.03 }}
-                    >
-                      <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300 group">
-                        <CardContent className="p-4 md:p-5">
-                          {/* Mobile Layout */}
-                          <div className="flex md:hidden flex-col gap-3">
-                            {/* Header */}
-                            <div className="flex items-start gap-3">
-                              <div className="relative flex-shrink-0">
-                                <img
-                                  src={getPatientAvatar(appointment.patientName)}
-                                  alt={appointment.patientName}
-                                  className="h-14 w-14 rounded-xl object-cover ring-2 ring-white shadow-md"
-                                />
-                                {appointment.aiSummaryReady && (
-                                  <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1">
-                                    <Brain className="h-3 w-3 text-white" />
-                                  </div>
-                                )}
-                              </div>
+                          <Avatar className={cn("h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0", colors.bg)}>
+                            <AvatarFallback className={cn(colors.bg, colors.text, "font-medium text-xs sm:text-sm")}>
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
 
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2 mb-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-lg font-bold text-gray-900">{appointment.startTime}</span>
-                                    <Badge className={cn(priority.color, priority.textColor, "text-[10px] px-2 py-0.5")}>
-                                      <PriorityIcon className="h-3 w-3 mr-0.5" />
-                                      {priority.label}
-                                    </Badge>
-                                  </div>
-                                </div>
-                                <h3 className="text-base font-bold text-gray-900 truncate">
-                                  {appointment.patientName}{appointment.patientAge && `, ${appointment.patientAge}a`}
-                                </h3>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                  {insurance && (
-                                    <Badge className={cn(insurance.bg, insurance.text, "text-[10px] px-2 py-0.5")}>
-                                      <Award className="h-2.5 w-2.5 mr-0.5" />
-                                      {insurance.name}
-                                    </Badge>
-                                  )}
-                                  {appointment.isFirstVisit && (
-                                    <Badge className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5">
-                                      1ª Consulta
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={cn(
+                              "text-sm sm:text-base font-medium text-foreground truncate",
+                              privacyMode && "blur-md select-none"
+                            )}>
+                              {apt.patientName}
+                            </h4>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                              {apt.reason}
+                            </p>
+                          </div>
+                        </div>
 
-                            {/* Smart Complaint */}
-                            {smartComplaint && (
-                              <div className="pl-1">
-                                <p className="text-sm text-gray-700 line-clamp-2">
-                                  <FileText className="h-3.5 w-3.5 inline mr-1 text-[#8C00FF]" />
-                                  {smartComplaint}
-                                </p>
-                              </div>
+                        <TooltipProvider delayDuration={0}>
+                          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0 w-full sm:w-auto">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate('/history')}
+                                  className="h-8 px-2 text-gray-700 hover:text-[#8C00FF] hover:bg-[#8C00FF]/10 transition-colors"
+                                >
+                                  <Clock className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="bg-gray-900 text-white border-gray-700">
+                                <p>Ver histórico de consultas</p>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            {lastConsultation && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => navigate(`/consultation/${lastConsultation.id}`)}
+                                    className="h-8 px-2 text-gray-700 hover:text-[#8C00FF] hover:bg-[#8C00FF]/10 transition-colors"
+                                  >
+                                    <FileText className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="bg-gray-900 text-white border-gray-700">
+                                  <p>Ver última consulta</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
 
-                            {/* Actions */}
-                            <div className="flex gap-2">
-                              {priority.label.includes('ATRASADO') || priority.label === 'PROVÁVEL FALTA' ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
                                 <Button
-                                  size="sm"
                                   variant="outline"
-                                  className="flex-1 h-9 border-orange-300 text-orange-700 hover:bg-orange-50"
-                                  onClick={() => handleMarkNoShow(appointment)}
-                                >
-                                  <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                                  Marcar Falta
-                                </Button>
-                              ) : (
-                                <Button
                                   size="sm"
-                                  variant="outline"
-                                  className="flex-1 h-9"
-                                  onClick={() => navigate('/appointments')}
+                                  onClick={() => handleStartConsultation(apt)}
+                                  className="flex-1 sm:flex-none h-8 px-2 sm:px-3 text-xs sm:text-sm border-gray-300 text-gray-700 hover:border-[#8C00FF] hover:text-[#8C00FF] hover:bg-[#8C00FF]/10 transition-colors"
                                 >
-                                  <History className="h-3.5 w-3.5 mr-1.5" />
-                                  Histórico
+                                  <Stethoscope className="mr-1 sm:mr-1.5 h-3.5 w-3.5" />
+                                  Iniciar
                                 </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                className="flex-1 h-9 bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white"
-                                onClick={() => handleStartConsultation(appointment)}
-                              >
-                                <Stethoscope className="h-3.5 w-3.5 mr-1.5" />
-                                Iniciar
-                              </Button>
-                            </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="bg-gray-900 text-white border-gray-700">
+                                <p>Iniciar atendimento</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
+
+        {/* Anteriores */}
+        {pastAppointments.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-3"
+          >
+            <h3 className="text-base font-semibold text-foreground">Anteriores</h3>
+
+            {pastAppointments.map((apt, index) => {
+              const initials = getPatientInitials(apt.patientName);
+              const colors = getInitialsColor(apt.patientName);
+              const lastConsultation = getLastConsultation(apt.patientId);
+
+              return (
+                <motion.div
+                  key={apt.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.05 * index }}
+                >
+                  <Card className="border border-gray-200 bg-white hover:shadow-sm transition-all opacity-60 hover:opacity-100">
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 w-full">
+                          <div className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[40px] sm:min-w-[45px]">
+                            {apt.startTime}
                           </div>
 
-                          {/* Desktop Layout */}
-                          <div className="hidden md:flex items-center gap-4">
-                            {/* Time + Priority */}
-                            <div className="flex flex-col items-center min-w-[120px]">
-                              <span className="text-2xl font-black text-gray-900">{appointment.startTime}</span>
-                              <Badge className={cn(priority.color, priority.textColor, "text-xs px-2.5 py-0.5 mt-1")}>
-                                <PriorityIcon className="h-3 w-3 mr-1" />
-                                {priority.label}
-                              </Badge>
-                            </div>
+                          <Avatar className={cn("h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0", colors.bg)}>
+                            <AvatarFallback className={cn(colors.bg, colors.text, "font-medium text-xs sm:text-sm")}>
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
 
-                            {/* Avatar */}
-                            <div className="relative">
-                              <img
-                                src={getPatientAvatar(appointment.patientName)}
-                                alt={appointment.patientName}
-                                className="h-16 w-16 rounded-2xl object-cover ring-2 ring-white shadow-md group-hover:scale-105 transition-transform"
-                              />
-                              {appointment.aiSummaryReady && (
-                                <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1.5">
-                                  <Brain className="h-3.5 w-3.5 text-white" />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Patient Info */}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#8C00FF] transition-colors truncate">
-                                {appointment.patientName}{appointment.patientAge && `, ${appointment.patientAge} anos`}
-                              </h3>
-                              <div className="flex items-center gap-3 mt-1 flex-wrap">
-                                {insurance && (
-                                  <Badge className={cn(insurance.bg, insurance.text, "text-xs px-2 py-0.5")}>
-                                    <Award className="h-3 w-3 mr-0.5" />
-                                    {insurance.name}
-                                  </Badge>
-                                )}
-                                {appointment.isFirstVisit && (
-                                  <Badge className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5">
-                                    Primeira Consulta
-                                  </Badge>
-                                )}
-                                {appointment.patientPhone && (
-                                  <span className="text-sm text-gray-500 hidden lg:flex items-center gap-1">
-                                    <Phone className="h-3.5 w-3.5" />
-                                    {appointment.patientPhone}
-                                  </span>
-                                )}
-                              </div>
-                              {smartComplaint && (
-                                <p className="text-sm text-gray-600 mt-1 line-clamp-1">
-                                  <FileText className="h-3.5 w-3.5 inline mr-1 text-[#8C00FF]" />
-                                  {smartComplaint}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex gap-2">
-                              {priority.label.includes('ATRASADO') || priority.label === 'PROVÁVEL FALTA' ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                                  onClick={() => handleMarkNoShow(appointment)}
-                                >
-                                  <XCircle className="h-4 w-4 mr-1.5" />
-                                  Marcar Falta
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => navigate('/appointments')}
-                                >
-                                  <History className="h-4 w-4 mr-1.5" />
-                                  Histórico
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white shadow-md hover:shadow-lg"
-                                onClick={() => handleStartConsultation(appointment)}
-                              >
-                                <Stethoscope className="h-4 w-4 mr-1.5" />
-                                Iniciar Consulta
-                              </Button>
-                            </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={cn(
+                              "text-sm sm:text-base font-medium text-foreground truncate",
+                              privacyMode && "blur-md select-none"
+                            )}>
+                              {apt.patientName}
+                            </h4>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                              {apt.reason}
+                            </p>
                           </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
+                        </div>
+
+                        <TooltipProvider delayDuration={0}>
+                          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0 w-full sm:w-auto">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate('/history')}
+                                  className="h-8 px-2 text-gray-700 hover:text-[#8C00FF] hover:bg-[#8C00FF]/10 transition-colors"
+                                >
+                                  <Clock className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="bg-gray-900 text-white border-gray-700">
+                                <p>Ver histórico de consultas</p>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            {lastConsultation && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => navigate(`/consultation/${lastConsultation.id}`)}
+                                    className="h-8 px-2 text-gray-700 hover:text-[#8C00FF] hover:bg-[#8C00FF]/10 transition-colors"
+                                  >
+                                    <FileText className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="bg-gray-900 text-white border-gray-700">
+                                  <p>Ver última consulta</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+
+                            {apt.status !== 'completed' && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleStartConsultation(apt)}
+                                    className="flex-1 sm:flex-none h-8 px-2 sm:px-3 text-xs sm:text-sm border-gray-300 text-gray-700 hover:border-[#8C00FF] hover:text-[#8C00FF] hover:bg-[#8C00FF]/10 transition-colors"
+                                  >
+                                    <PlayCircle className="mr-1 sm:mr-1.5 h-3.5 w-3.5" />
+                                    Iniciar
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="bg-gray-900 text-white border-gray-700">
+                                  <p>Iniciar atendimento</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TooltipProvider>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
+
+        {/* Empty state */}
+        {!currentPatient && futureAppointments.length === 0 && pastAppointments.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-16"
+          >
+            <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+              <Users className="h-8 w-8 text-muted-foreground" />
             </div>
-          )}
-        </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Nenhum agendamento para hoje
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Aproveite para descansar ou revisar casos anteriores.
+            </p>
+          </motion.div>
+        )}
       </div>
     </AppLayout>
   );

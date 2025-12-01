@@ -73,6 +73,14 @@ interface AppState {
   setAiDetailLevel: (level: 'short' | 'medium' | 'long') => void;
   language: 'pt' | 'en';
   setLanguage: (lang: 'pt' | 'en') => void;
+
+  // Privacy Mode
+  privacyMode: boolean;
+  togglePrivacyMode: () => void;
+
+  // LGPD: Auto-Delete Audio
+  autoDeleteAudio: boolean;
+  setAutoDeleteAudio: (value: boolean) => void;
 }
 
 // Gerar dados mockados realistas
@@ -113,7 +121,7 @@ export const useAppStore = create<AppState>()(
         set({
           isAuthenticated: true,
           user: {
-            name: 'Dr. Silva',
+            name: 'Dr. Luzzi',
             email: email
           }
         });
@@ -347,7 +355,7 @@ export const useAppStore = create<AppState>()(
       setAiResponse: (text) => set({ aiResponse: text }),
 
       // Settings
-      doctorName: 'Dr. Silva',
+      doctorName: 'Dr. Luzzi',
       setDoctorName: (name) => set({ doctorName: name }),
       doctorSpecialty: 'Clínico Geral',
       setDoctorSpecialty: (specialty) => set({ doctorSpecialty: specialty }),
@@ -365,6 +373,14 @@ export const useAppStore = create<AppState>()(
       setAiDetailLevel: (level) => set({ aiDetailLevel: level }),
       language: 'pt',
       setLanguage: (lang) => set({ language: lang }),
+
+      // Privacy Mode
+      privacyMode: false,
+      togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
+
+      // LGPD: Auto-Delete Audio
+      autoDeleteAudio: true, // Default: enabled for privacy
+      setAutoDeleteAudio: (value) => set({ autoDeleteAudio: value }),
     }),
     {
       name: 'medical-copilot-storage', // nome único para o localStorage
@@ -379,6 +395,7 @@ export const useAppStore = create<AppState>()(
         clinicLocation: state.clinicLocation,
         clinicPhone: state.clinicPhone,
         clinicEmail: state.clinicEmail,
+        autoDeleteAudio: state.autoDeleteAudio,
       }),
     }
   )

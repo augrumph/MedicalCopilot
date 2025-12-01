@@ -86,11 +86,126 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
     // Use local date string to avoid timezone issues
     const dateStr = appointmentDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
 
+    const usedSlots = new Set<number>();
+    const usedPatients = new Set<string>();
+
+    // SPECIAL CASE: TODAY - Create specific demo scenarios
+    if (i === 0 && patients.length >= 4) {
+      // Scenario 1: DELAYED patient (09:00 - should be in "Anteriores" assuming current time is 10:24)
+      const delayedPatient = patients[0];
+      appointments.push({
+        id: generateAppointmentId(),
+        patientId: delayedPatient.id,
+        patientName: delayedPatient.name,
+        patientAge: delayedPatient.age,
+        doctorName: 'Dr. Silva',
+        date: dateStr,
+        startTime: '09:00',
+        endTime: '09:30',
+        type: 'consultation',
+        status: 'scheduled',
+        notes: undefined,
+        patientPhone: delayedPatient.phone || undefined,
+        reason: 'Consulta de rotina - Paciente Atrasado',
+        insurance: 'unimed',
+        isFirstVisit: false,
+        hasExamResults: false,
+        aiSummaryReady: true,
+        lastVisitDate: undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      usedPatients.add(delayedPatient.id);
+      usedSlots.add(timeSlots.findIndex(s => s.start === '09:00'));
+
+      // Scenario 2: CURRENT/HERO patient (10:00 - should be the Hero Card)
+      const heroPatient = patients[1];
+      appointments.push({
+        id: generateAppointmentId(),
+        patientId: heroPatient.id,
+        patientName: heroPatient.name,
+        patientAge: heroPatient.age,
+        doctorName: 'Dr. Silva',
+        date: dateStr,
+        startTime: '10:00',
+        endTime: '10:30',
+        type: 'consultation',
+        status: 'confirmed',
+        notes: 'Paciente prioritário',
+        patientPhone: heroPatient.phone || undefined,
+        reason: 'Acompanhamento pós-cirúrgico',
+        insurance: 'particular',
+        isFirstVisit: false,
+        hasExamResults: true,
+        aiSummaryReady: true,
+        lastVisitDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      usedPatients.add(heroPatient.id);
+      usedSlots.add(timeSlots.findIndex(s => s.start === '10:00'));
+
+      // Scenario 3: FUTURE patient 1 (11:00)
+      const futurePatient1 = patients[2];
+      appointments.push({
+        id: generateAppointmentId(),
+        patientId: futurePatient1.id,
+        patientName: futurePatient1.name,
+        patientAge: futurePatient1.age,
+        doctorName: 'Dr. Silva',
+        date: dateStr,
+        startTime: '11:00',
+        endTime: '11:30',
+        type: 'checkup',
+        status: 'confirmed',
+        notes: undefined,
+        patientPhone: futurePatient1.phone || undefined,
+        reason: 'Controle de hipertensão',
+        insurance: 'bradesco',
+        isFirstVisit: false,
+        hasExamResults: false,
+        aiSummaryReady: false,
+        lastVisitDate: undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      usedPatients.add(futurePatient1.id);
+      usedSlots.add(timeSlots.findIndex(s => s.start === '11:00'));
+
+      // Scenario 4: FUTURE patient 2 (14:00)
+      const futurePatient2 = patients[3];
+      appointments.push({
+        id: generateAppointmentId(),
+        patientId: futurePatient2.id,
+        patientName: futurePatient2.name,
+        patientAge: futurePatient2.age,
+        doctorName: 'Dr. Silva',
+        date: dateStr,
+        startTime: '14:00',
+        endTime: '14:30',
+        type: 'follow-up',
+        status: 'scheduled',
+        notes: undefined,
+        patientPhone: futurePatient2.phone || undefined,
+        reason: 'Resultado de exames',
+        insurance: 'amil',
+        isFirstVisit: false,
+        hasExamResults: true,
+        aiSummaryReady: true,
+        lastVisitDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      usedPatients.add(futurePatient2.id);
+      usedSlots.add(timeSlots.findIndex(s => s.start === '14:00'));
+    }
+
+    // Fill remaining slots with random appointments
     // More appointments for TODAY, fewer for future days
     let numAppointments;
     if (i === 0) {
-      // TODAY: 6-8 appointments (or less if not enough patients)
-      numAppointments = Math.min(Math.floor(Math.random() * 3) + 6, patients.length, timeSlots.length);
+      // TODAY: 2-4 additional appointments (we already created 4 specific ones)
+      numAppointments = Math.min(Math.floor(Math.random() * 3) + 2, patients.length - usedPatients.size, timeSlots.length - usedSlots.size);
     } else if (i <= 2) {
       // Next 2 days: 4-6 appointments
       numAppointments = Math.min(Math.floor(Math.random() * 3) + 4, patients.length, timeSlots.length);
@@ -98,9 +213,6 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
       // Future days: 2-4 appointments
       numAppointments = Math.min(Math.floor(Math.random() * 3) + 2, patients.length, timeSlots.length);
     }
-
-    const usedSlots = new Set<number>();
-    const usedPatients = new Set<string>();
 
     for (let j = 0; j < numAppointments && usedSlots.size < timeSlots.length; j++) {
       // Get a random time slot that hasn't been used yet
