@@ -37,7 +37,8 @@
       "Bash(tree:*)",
       "Bash(node -e:*)",
       "Bash(git commit:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

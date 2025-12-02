@@ -19,11 +19,13 @@ import {
   XCircle,
   Stethoscope,
   Activity,
-  Calendar
+  Calendar,
+  StickyNote
 } from 'lucide-react';
 import MedicationCard from '@/components/MedicationCard';
 import { AppLayout } from '@/components/AppLayout';
 import { AIChatPanel } from '@/components/consultation/AIChatPanel';
+import { MagicCopySection } from '@/components/consultation/MagicCopySection';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -39,7 +41,7 @@ import { SessionThemesAndGoals } from '@/components/psychology/SessionThemesAndG
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 
 export function ConsultationPage() {
@@ -55,12 +57,18 @@ export function ConsultationPage() {
   const [isGeneratingNote, setIsGeneratingNote] = useState(false);
   const [noteGenerated, setNoteGenerated] = useState(false);
   const [showNoteSection, setShowNoteSection] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ai' | 'diagnosis' | 'medication' | 'prescription' | 'themes' | 'interventions'>('ai');
+  const [activeTab, setActiveTab] = useState<'ai' | 'diagnosis' | 'medication' | 'prescription' | 'themes' | 'interventions' | 'clinical-note'>('ai');
   const [prescriptionGenerated, setPrescriptionGenerated] = useState(false);
 
   // LGPD: Consent Modal
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [dontShowConsentToday, setDontShowConsentToday] = useState(false);
+
+  // FASE 2: Stop Button Safety
+  const [showStopConfirmation, setShowStopConfirmation] = useState(false);
+
+  // FASE 2: Quick Notes
+  const [quickNotes, setQuickNotes] = useState('');
 
   useEffect(() => {
     if (!isListening) return;
@@ -106,8 +114,14 @@ export function ConsultationPage() {
         startRecording();
       }
     } else {
-      setIsListening(false);
+      // FASE 2: Show stop confirmation modal
+      setShowStopConfirmation(true);
     }
+  };
+
+  const handleStopRecording = () => {
+    setIsListening(false);
+    setShowStopConfirmation(false);
   };
 
   const handleConsentAccepted = () => {
@@ -139,6 +153,9 @@ export function ConsultationPage() {
       setDoctorNotes(note);
       setShowNoteSection(true);
       setNoteGenerated(true);
+
+      // FASE 3: Auto-switch to clinical note tab
+      setActiveTab('clinical-note');
 
       setTimeout(() => {
         setNoteGenerated(false);
@@ -265,6 +282,40 @@ export function ConsultationPage() {
 
   return (
     <AppLayout>
+      {/* FASE 2: Modal de Confirmação de Parada */}
+      <Dialog open={showStopConfirmation} onOpenChange={setShowStopConfirmation}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Deseja encerrar a gravação?</DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 mt-2">
+              Você ainda poderá gerar a nota clínica após parar a gravação.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 my-4">
+            <p className="text-sm text-gray-700 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              Esta ação interromperá a transcrição em tempo real.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowStopConfirmation(false)}
+            >
+              Continuar Gravando
+            </Button>
+            <Button
+              onClick={handleStopRecording}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Sim, Encerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* 2.2. LGPD: Modal de Consentimento */}
       <Dialog open={showConsentModal} onOpenChange={setShowConsentModal}>
         <DialogContent className="sm:max-w-md">
@@ -316,16 +367,16 @@ export function ConsultationPage() {
       </Dialog>
 
       <div className="flex flex-col h-full bg-gray-50/50">
-        {/* 2.3. LGPD: Indicador de Gravação Pulsante */}
+        {/* 2.3. LGPD: Indicador de Gravação Pulsante + FASE 2: Audio Visualizer */}
         <AnimatePresence>
           {isListening && (
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white py-2 px-4 shadow-lg"
+              className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white py-3 px-4 shadow-lg"
             >
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-4">
                 <motion.div
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
@@ -334,6 +385,24 @@ export function ConsultationPage() {
                 <span className="font-bold text-sm">
                   🔴 Gravando áudio para transcrição (Seguro)
                 </span>
+                {/* FASE 2: Audio Visualizer Bars */}
+                <div className="flex items-center gap-1 ml-2">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <motion.div
+                      key={i}
+                      className="w-1 bg-white rounded-full"
+                      animate={{
+                        height: ["8px", "20px", "8px"],
+                      }}
+                      transition={{
+                        duration: 0.8,
+                        repeat: Infinity,
+                        delay: i * 0.1,
+                        ease: "easeInOut",
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             </motion.div>
           )}
@@ -428,6 +497,42 @@ export function ConsultationPage() {
                   </motion.div>
                 )}
 
+                {/* FASE 2: Quick Notes Button */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-10 px-4 shadow-sm border-gray-300 hover:border-primary hover:text-primary rounded-full"
+                    >
+                      <StickyNote className="mr-2 h-4 w-4" />
+                      Notas Rápidas
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-bold">Notas Rápidas</DialogTitle>
+                      <DialogDescription className="text-sm text-gray-600 mt-2">
+                        Anote informações importantes sem interferir na IA
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="my-4">
+                      <textarea
+                        value={quickNotes}
+                        onChange={(e) => setQuickNotes(e.target.value)}
+                        placeholder="Ex: PA 120/80, Peso 70kg, Altura 1.75m..."
+                        className="w-full h-40 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline">Limpar</Button>
+                      <Button onClick={() => setQuickNotes(quickNotes)} className="bg-primary">
+                        Salvar
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
                 <Button
                   onClick={handleToggleListen}
                   size="sm"
@@ -475,6 +580,9 @@ export function ConsultationPage() {
                     ...(appContext === 'medical' ? [
                       { id: 'medication', label: 'Medicação', icon: Pill, description: 'Sugestões' },
                       { id: 'prescription', label: 'Receita', icon: FileCheck, description: 'Documentos' },
+                    ] : []),
+                    ...(showNoteSection ? [
+                      { id: 'clinical-note', label: 'Nota Clínica', icon: FileText, description: 'SOAP segmentado' },
                     ] : []),
                     ...(appContext === 'psychology' ? [
                       { id: 'themes', label: 'Temas', icon: Target, description: 'Focos terapêuticos' },
@@ -674,6 +782,15 @@ export function ConsultationPage() {
                           ) : (
                             <PsychologyClinicalHypothesis patientName={selectedPatient?.name || ''} />
                           )}
+                        </div>
+                      </ScrollArea>
+                    </TabsContent>
+
+                    {/* FASE 3: Magic Copy Section */}
+                    <TabsContent value="clinical-note" className="h-full m-0 overflow-auto">
+                      <ScrollArea className="h-full">
+                        <div className="p-6 sm:p-8">
+                          <MagicCopySection clinicalNote={currentConsultation.doctorNotes || ''} />
                         </div>
                       </ScrollArea>
                     </TabsContent>

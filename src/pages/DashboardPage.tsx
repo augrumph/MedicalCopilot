@@ -13,6 +13,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
@@ -24,6 +25,7 @@ import { useAppointmentStore } from '@/stores/appointmentStore';
 import { initializeMockAppointments } from '@/lib/data/mockAppointments';
 import { getPatientInitials, getInitialsColor, cn } from '@/lib/utils';
 import type { Appointment } from '@/lib/types/appointment';
+import { calculateTimeSaved } from '@/utils/metrics';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -66,8 +68,20 @@ const DashboardPage = () => {
     const completed = todayAppointments.filter(a => a.status === 'completed').length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-    return { total, completed, completionRate };
-  }, [todayAppointments]);
+    // Calculate total time saved today
+    const todayConsultations = consultations.filter(c => {
+      const consultDate = new Date(c.startedAt).toLocaleDateString('en-CA');
+      return consultDate === today && c.doctorNotes;
+    });
+
+    const totalTimeSaved = todayConsultations.reduce((acc, consultation) => {
+      const timeStr = calculateTimeSaved(consultation.doctorNotes || '');
+      const minutes = parseFloat(timeStr);
+      return acc + (isNaN(minutes) ? 0 : minutes);
+    }, 0);
+
+    return { total, completed, completionRate, totalTimeSaved };
+  }, [todayAppointments, consultations, today]);
 
   // Find current patient (within ±30min)
   const currentPatient = useMemo(() => {
@@ -134,12 +148,33 @@ const DashboardPage = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
-            {getGreeting()}, {user?.name || 'Dr. Luzzi'}
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            {stats.completed} de {stats.total} pacientes atendidos hoje
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
+                {getGreeting()}, {user?.name || 'Dr. Luzzi'}
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                {stats.completed} de {stats.total} pacientes atendidos hoje
+              </p>
+            </div>
+
+            {stats.totalTimeSaved > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="hidden sm:flex items-center gap-3 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl px-5 py-3 shadow-sm"
+              >
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600 font-medium">Tempo Economizado Hoje</p>
+                  <p className="text-xl font-bold text-green-700">{stats.totalTimeSaved.toFixed(1)} min</p>
+                </div>
+              </motion.div>
+            )}
+          </div>
         </motion.div>
 
         {/* Paciente Atual */}
@@ -163,8 +198,13 @@ const DashboardPage = () => {
                     </Avatar>
 
                     <div className="flex-1 min-w-0">
+                      <div className="mb-2">
+                        <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm text-[10px] font-bold tracking-wide">
+                          PRONTO PARA INICIAR
+                        </Badge>
+                      </div>
                       <h2 className={cn(
-                        "text-lg sm:text-xl font-bold text-white mb-1 tracking-tight truncate",
+                        "text-2xl sm:text-3xl font-bold text-white mb-1 tracking-tight truncate",
                         privacyMode && "blur-md select-none"
                       )}>
                         {currentPatient.patientName}
@@ -190,7 +230,7 @@ const DashboardPage = () => {
                     <Button
                       size="sm"
                       onClick={() => handleStartConsultation(currentPatient)}
-                      className="flex-1 h-9 sm:h-10 text-xs sm:text-sm bg-white text-[#8C00FF] hover:bg-white/90 font-bold shadow-md"
+                      className="flex-1 h-9 sm:h-10 text-xs sm:text-sm bg-white text-purple-700 hover:bg-gray-100 font-bold shadow-md"
                     >
                       {currentPatient.status === 'in-progress' ? (
                         <>
@@ -200,7 +240,7 @@ const DashboardPage = () => {
                       ) : (
                         <>
                           <Stethoscope className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          Iniciar
+                          Abrir Copilot
                         </>
                       )}
                     </Button>
@@ -234,10 +274,10 @@ const DashboardPage = () => {
                   transition={{ delay: 0.05 * index }}
                 >
                   <Card className="border border-gray-200 bg-white hover:shadow-sm transition-all">
-                    <CardContent className="p-3 sm:p-4">
+                    <CardContent className="py-3 px-3 sm:px-4">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 w-full">
-                          <div className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[40px] sm:min-w-[45px]">
+                          <div className="text-xs sm:text-sm font-mono font-bold text-muted-foreground min-w-[40px] sm:min-w-[45px]">
                             {apt.startTime}
                           </div>
 
@@ -346,10 +386,10 @@ const DashboardPage = () => {
                   transition={{ delay: 0.05 * index }}
                 >
                   <Card className="border border-gray-200 bg-white hover:shadow-sm transition-all opacity-60 hover:opacity-100">
-                    <CardContent className="p-3 sm:p-4">
+                    <CardContent className="py-3 px-3 sm:px-4">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 w-full">
-                          <div className="text-xs sm:text-sm font-medium text-muted-foreground min-w-[40px] sm:min-w-[45px]">
+                          <div className="text-xs sm:text-sm font-mono font-bold text-muted-foreground min-w-[40px] sm:min-w-[45px]">
                             {apt.startTime}
                           </div>
 
