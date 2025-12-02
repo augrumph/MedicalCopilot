@@ -35,7 +35,8 @@ const DashboardPage = () => {
 
   // Get today's date
   const today = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
-  const now = new Date();
+  // Use state for now to ensure it updates
+  const [now] = useState(() => new Date());
 
   // Dynamic greeting
   const getGreeting = () => {
@@ -47,10 +48,17 @@ const DashboardPage = () => {
 
   // Initialize mock data
   useEffect(() => {
-    if (!isInitialized && appointments.length === 0) {
+    // Check if we need to reinitialize (version bump or empty)
+    const APPOINTMENTS_VERSION = '2.0'; // Bump this to force refresh
+    const currentVersion = localStorage.getItem('appointments-version');
+
+    if (!isInitialized && (appointments.length === 0 || currentVersion !== APPOINTMENTS_VERSION)) {
+      console.log('🔄 Reinitializing appointments...');
       clearAllAppointments();
       const mockAppointments = initializeMockAppointments(patients);
+      console.log('📅 Generated appointments:', mockAppointments.length);
       mockAppointments.forEach(apt => addAppointment(apt));
+      localStorage.setItem('appointments-version', APPOINTMENTS_VERSION);
       setIsInitialized(true);
     }
   }, [isInitialized, appointments.length, addAppointment, clearAllAppointments, patients]);
@@ -87,7 +95,17 @@ const DashboardPage = () => {
   const currentPatient = useMemo(() => {
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    return todayAppointments.find(apt => {
+    console.log('🔍 DEBUG: Finding current patient...');
+    console.log('Current time:', now.getHours() + ':' + now.getMinutes());
+    console.log('Current minutes:', currentMinutes);
+    console.log('Today appointments:', todayAppointments.length);
+    console.log('Appointments:', todayAppointments.map(a => ({
+      time: a.startTime,
+      name: a.patientName,
+      status: a.status
+    })));
+
+    const found = todayAppointments.find(apt => {
       if (apt.status === 'in-progress') return true;
       if (apt.status === 'completed' || apt.status === 'cancelled') return false;
 
@@ -95,8 +113,14 @@ const DashboardPage = () => {
       const aptMinutes = hours * 60 + minutes;
       const diff = Math.abs(aptMinutes - currentMinutes);
 
+      console.log(`Checking ${apt.patientName} at ${apt.startTime}: aptMinutes=${aptMinutes}, diff=${diff}`);
+
       return diff <= 30;
     });
+
+    console.log('✅ Current patient found:', found?.patientName || 'NONE');
+
+    return found;
   }, [todayAppointments, now]);
 
   // Split appointments into future and past
