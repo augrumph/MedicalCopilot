@@ -19,16 +19,16 @@ const ContextRouter: React.FC = () => {
   // Redirect to appropriate dashboard if user is on root path and authenticated
   React.useEffect(() => {
     if (location.pathname === '/' && isAuthenticated && appContext) {
-      navigate('/dashboard');
+      navigate('/worklist');
     }
   }, [location.pathname, isAuthenticated, appContext, navigate]);
 
   return (
     <Routes>
-      <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+      <Route path="/" element={isAuthenticated ? <Navigate to="/worklist" replace /> : <Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route
-        path="/dashboard"
+        path="/worklist"
         element={
           <ProtectedRoute>
             <DashboardPage />

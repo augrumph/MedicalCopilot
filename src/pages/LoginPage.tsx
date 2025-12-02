@@ -19,7 +19,7 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      navigate('/worklist');
     }
   }, [isAuthenticated, navigate]);
 

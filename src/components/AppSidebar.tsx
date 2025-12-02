@@ -30,9 +30,9 @@ const getMenuItems = (appContext: 'medical' | 'psychology') => {
   const config = getContextConfig(appContext);
   return [
     {
-      title: 'Dashboard',
+      title: 'Worklist',
       icon: LayoutDashboard,
-      url: '/dashboard',
+      url: '/worklist',
     },
     {
       title: config.patientLabelPlural,
@@ -83,7 +83,7 @@ export function AppSidebar() {
     if (location.pathname === url) return true
 
     // Handle nested routes (e.g., /consultation/123 activates /consultation)
-    if (url !== '/dashboard' && location.pathname.startsWith(url + '/')) return true
+    if (url !== '/worklist' && location.pathname.startsWith(url + '/')) return true
 
     // Handle route aliases
     if (url === '/appointments' && (location.pathname === '/scheduling' || location.pathname.startsWith('/scheduling/'))) return true

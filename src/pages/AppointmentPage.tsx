@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -9,7 +9,8 @@ import {
   XCircle,
   FileText,
   Stethoscope,
-  Phone
+  Phone,
+  RefreshCcw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppointmentForm } from '@/components/appointments/AppointmentForm';
+import { CalendarIntegrationsDialog } from '@/components/appointments/CalendarIntegrationsDialog';
 import { useAppointmentStore } from '@/stores/appointmentStore';
 import { useAppStore } from '@/stores/appStore';
 import { initializeMockAppointments } from '@/lib/data/mockAppointments';
@@ -37,6 +39,7 @@ export function AppointmentPage() {
   const { appointments, addAppointment, updateAppointment, clearAllAppointments } = useAppointmentStore();
   const { patients, startConsultation, setSelectedPatient } = useAppStore();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -255,122 +258,130 @@ export function AppointmentPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-full space-y-8">
-        {/* Hero Section */}
+      <div className="min-h-full space-y-6">
+        {/* Header - Silicon Valley Style */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#450693] via-[#8C00FF] to-[#FF3F7F] p-6 md:p-8 shadow-2xl"
         >
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light"></div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              {/* Greeting with modern typography */}
+              <div className="flex items-baseline gap-3 mb-4">
+                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
+                  Bem-vindo, <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Dr. Luzzi</span>
+                </h1>
+              </div>
 
-          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <motion.h1
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-3xl md:text-4xl font-black text-white tracking-tight"
-              >
-                Agenda Médica
-              </motion.h1>
+              {/* Stats Row - Clean & Modern */}
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Today's Appointments Pill */}
+                <div className="inline-flex items-center gap-3 bg-gray-900 text-white rounded-xl px-5 py-3 shadow-lg shadow-gray-900/20">
+                  <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-lg">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold tabular-nums">{stats[0].value}</span>
+                    <span className="text-sm text-white/70 font-medium">agendados hoje</span>
+                  </div>
+                </div>
 
-              <motion.p
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-white/90 font-medium max-w-md"
-              >
-                Gerencie seus agendamentos com eficiência e estilo.
-              </motion.p>
+                {/* Confirmed Pill */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="inline-flex items-center gap-3 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl px-5 py-3 shadow-lg shadow-green-500/25"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-lg">
+                    <CheckCircle className="h-5 w-5" />
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold tabular-nums">{stats[1].value}</span>
+                    <span className="text-sm font-medium opacity-90">confirmados</span>
+                  </div>
+                </motion.div>
+
+                {/* Pending Pill */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="inline-flex items-center gap-3 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl px-5 py-3 shadow-lg shadow-blue-500/25"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-lg">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold tabular-nums">{stats[2].value}</span>
+                    <span className="text-sm font-medium opacity-90">pendentes</span>
+                  </div>
+                </motion.div>
+              </div>
             </div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 }}
-              className="flex gap-3"
-            >
-              <Button
-                onClick={handleResetAppointments}
-                className="bg-white/20 text-white hover:bg-white/30 shadow-xl hover:shadow-2xl transition-all duration-300 px-4 py-6 h-auto text-sm font-bold rounded-2xl backdrop-blur-sm border border-white/30"
-                title="Limpar e recriar agendamentos com data de hoje"
-              >
-                Atualizar Dados
-              </Button>
-              <Button
-                onClick={handleCreateAppointment}
-                className="bg-white text-[#450693] hover:bg-white/90 shadow-xl hover:shadow-2xl transition-all duration-300 px-6 py-6 h-auto text-base font-bold rounded-2xl group"
-              >
-                <Plus className="mr-2 h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
-                Novo Agendamento
-              </Button>
-            </motion.div>
           </div>
         </motion.div>
 
-        {/* Stats Grid */}
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 * index }}
-            >
-              <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-white/80 backdrop-blur-sm">
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
-                <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110`} />
-
-                <CardContent className="p-5 relative">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`p-3 rounded-2xl ${stat.iconBg} shadow-lg shadow-${stat.iconBg}/20 ring-4 ring-white`}>
-                      {React.createElement(stat.icon, { className: "h-5 w-5 text-white" })}
-                    </div>
-                    <Badge className="bg-gray-100 text-gray-600 border-0 font-semibold text-[0.65rem] px-2 py-0.5 rounded-full">
-                      Hoje
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                      {stat.title}
-                    </p>
-                    <p className="text-4xl font-black text-gray-900 tracking-tight">
-                      {stat.value}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+        {/* Action Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex gap-3"
+        >
+          <Button
+            onClick={handleResetAppointments}
+            variant="outline"
+            className="border-gray-300 hover:border-purple-300 hover:bg-purple-50"
+            title="Limpar e recriar agendamentos com data de hoje"
+          >
+            Atualizar Dados
+          </Button>
+          <Button
+            onClick={() => setIsIntegrationsOpen(true)}
+            variant="outline"
+            className="border-gray-300 hover:border-purple-300 hover:bg-purple-50"
+          >
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            Gerenciar Integrações
+          </Button>
+          <Button
+            onClick={handleCreateAppointment}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Agendamento
+          </Button>
+        </motion.div>
 
         {/* Filters and Search */}
-        <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="sticky top-4 z-30 bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-lg border-0 flex flex-col md:flex-row gap-4 items-center justify-between"
+        >
           <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full md:w-auto">
-            <TabsList className="bg-gray-100/50 p-1 rounded-xl">
-              <TabsTrigger value="today" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#8C00FF] font-medium">Hoje</TabsTrigger>
-              <TabsTrigger value="upcoming" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#8C00FF] font-medium">Próximos</TabsTrigger>
-              <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-[#8C00FF] font-medium">Histórico</TabsTrigger>
+            <TabsList className="bg-gray-100 p-1 rounded-xl">
+              <TabsTrigger value="today" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 font-medium">Hoje</TabsTrigger>
+              <TabsTrigger value="upcoming" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 font-medium">Próximos</TabsTrigger>
+              <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 font-medium">Histórico</TabsTrigger>
             </TabsList>
           </Tabs>
 
           <div className="flex gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-72 group">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-[#8C00FF] transition-colors" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-purple-600 transition-colors" />
               <Input
                 placeholder="Buscar paciente, motivo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-50 border-transparent focus:bg-white focus:border-[#8C00FF]/20 rounded-xl transition-all"
+                className="pl-10 bg-gray-50 border-gray-200 focus:bg-white focus:border-purple-300 rounded-xl transition-all"
               />
             </div>
 
             <Select value={filterStatus} onValueChange={(v: any) => setFilterStatus(v)}>
-              <SelectTrigger className="w-[160px] rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-[#8C00FF]/20">
+              <SelectTrigger className="w-[160px] rounded-xl bg-gray-50 border-gray-200 focus:bg-white focus:border-purple-300">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -382,9 +393,9 @@ export function AppointmentPage() {
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Creative Timeline Layout */}
+        {/* Appointments List */}
         <div className="relative min-h-[400px]">
           <AnimatePresence mode="popLayout">
             {filteredAppointments.length === 0 ? (
@@ -403,10 +414,7 @@ export function AppointmentPage() {
                 </p>
               </motion.div>
             ) : (
-              <div className="space-y-6 relative pb-12">
-                {/* Timeline Line */}
-                <div className="absolute left-8 top-4 bottom-4 w-0.5 bg-gradient-to-b from-[#8C00FF]/20 via-[#FF3F7F]/20 to-transparent hidden md:block" />
-
+              <div className="space-y-4">
                 {filteredAppointments.map((appointment, index) => {
                   const isToday = new Date(appointment.date).toDateString() === new Date().toDateString();
                   const now = new Date();
@@ -421,132 +429,114 @@ export function AppointmentPage() {
                     <motion.div
                       key={appointment.id}
                       layout
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
                       transition={{ delay: index * 0.05 }}
-                      className="relative md:pl-24 group"
                     >
-                      {/* Timeline Time & Dot */}
-                      <div className="hidden md:flex flex-col items-end absolute left-0 top-0 w-20 pr-4 pt-4">
-                        <span className={`text-sm font-bold ${isCurrent ? 'text-[#8C00FF]' : 'text-gray-500'}`}>
-                          {appointment.startTime}
-                        </span>
-                        <div className={`absolute right-[-5px] top-6 w-3 h-3 rounded-full border-2 border-white shadow-sm z-10 transition-colors duration-300 ${isCurrent ? 'bg-[#8C00FF] scale-125 ring-4 ring-[#8C00FF]/20' :
-                          appointment.status === 'completed' ? 'bg-green-500' :
-                            appointment.status === 'cancelled' ? 'bg-red-500' :
-                              'bg-gray-300 group-hover:bg-[#8C00FF]/50'
-                          }`} />
-                      </div>
-
                       <Card
                         className={cn(
-                          "relative overflow-hidden transition-all duration-300 border-0 shadow-md hover:shadow-xl group-hover:-translate-y-1",
-                          isCurrent
-                            ? "bg-gradient-to-r from-[#8C00FF]/5 to-white ring-1 ring-[#8C00FF]/30"
-                            : "bg-white hover:bg-gray-50/50"
+                          "relative overflow-hidden transition-all duration-300 border-0 shadow-lg hover:shadow-xl bg-white",
+                          isCurrent && "ring-2 ring-purple-400"
                         )}
                       >
-                        {/* Status Stripe */}
-                        <div className={cn(
-                          "absolute left-0 top-0 bottom-0 w-1.5",
-                          appointment.status === 'confirmed' ? "bg-green-500" :
-                            appointment.status === 'completed' ? "bg-blue-500" :
-                              appointment.status === 'cancelled' ? "bg-red-500" :
-                                "bg-[#8C00FF]"
-                        )} />
-
-                        <CardContent className="p-5 flex flex-col md:flex-row gap-5 items-start md:items-center">
-                          {/* Mobile Time */}
-                          <div className="md:hidden flex items-center gap-2 text-sm font-bold text-gray-500 mb-2">
-                            <Clock className="h-4 w-4" />
-                            {appointment.startTime} - {appointment.endTime}
-                          </div>
-
-                          {/* Patient Info */}
-                          <div className="flex items-center gap-4 flex-1">
-                            <div className="relative">
-                              <img
-                                src={getPatientAvatar(appointment.patientName)}
-                                alt={appointment.patientName}
-                                className="h-14 w-14 rounded-2xl object-cover shadow-sm ring-2 ring-white"
-                              />
-                              {isCurrent && (
-                                <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-4 w-4 bg-green-500 border-2 border-white"></span>
-                                </span>
-                              )}
+                        <CardContent className="p-5">
+                          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                            {/* Time */}
+                            <div className="text-center min-w-[80px]">
+                              <div className="text-2xl font-bold text-gray-900 tabular-nums leading-none">
+                                {appointment.startTime}
+                              </div>
+                              <div className="text-xs text-gray-500 uppercase tracking-wide mt-1 font-medium">
+                                {appointment.endTime}
+                              </div>
                             </div>
 
-                            <div>
-                              <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#8C00FF] transition-colors">
-                                {appointment.patientName}
-                              </h3>
-                              <div className="flex items-center gap-2 text-sm text-gray-500">
-                                <Badge variant="secondary" className="rounded-md px-2 py-0 h-5 text-[10px] font-medium uppercase tracking-wide">
-                                  {appointment.type}
-                                </Badge>
-                                {appointment.patientPhone && (
-                                  <span className="flex items-center gap-1">
-                                    <Phone className="h-3 w-3" />
-                                    {appointment.patientPhone}
+                            {/* Patient Avatar & Info */}
+                            <div className="flex items-center gap-4 flex-1">
+                              <div className="relative">
+                                <img
+                                  src={getPatientAvatar(appointment.patientName)}
+                                  alt={appointment.patientName}
+                                  className="h-14 w-14 rounded-xl object-cover shadow-sm ring-2 ring-gray-100"
+                                />
+                                {isCurrent && (
+                                  <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-4 w-4 bg-purple-600 border-2 border-white"></span>
                                   </span>
                                 )}
                               </div>
+
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                                  {appointment.patientName}
+                                </h3>
+                                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                                  <Badge variant="secondary" className="rounded-md px-2 py-0 h-5 text-xs font-medium">
+                                    {appointment.type}
+                                  </Badge>
+                                  {appointment.patientPhone && (
+                                    <span className="flex items-center gap-1">
+                                      <Phone className="h-3 w-3" />
+                                      {appointment.patientPhone}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Reason & Notes */}
-                          <div className="flex-1 md:border-l md:pl-5 md:border-gray-100">
-                            <p className="text-sm font-medium text-gray-900 mb-1">
-                              {appointment.reason || 'Consulta de rotina'}
-                            </p>
-                            {appointment.notes && (
-                              <p className="text-xs text-gray-500 line-clamp-1">
-                                <FileText className="h-3 w-3 inline mr-1" />
-                                {appointment.notes}
+                            {/* Reason */}
+                            <div className="flex-1 md:border-l md:pl-5 md:border-gray-100">
+                              <p className="text-sm font-medium text-gray-900 mb-1">
+                                {appointment.reason || 'Consulta de rotina'}
                               </p>
-                            )}
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex items-center gap-2 w-full md:w-auto mt-4 md:mt-0">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-10 w-10 rounded-xl text-gray-400 hover:text-[#8C00FF] hover:bg-[#8C00FF]/10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewPatient(appointment);
-                              }}
-                            >
-                              <FileText className="h-5 w-5" />
-                            </Button>
-
-                            <Button
-                              variant="outline"
-                              className="flex-1 md:flex-none border-gray-200 hover:border-[#8C00FF] hover:text-[#8C00FF] rounded-xl"
-                              onClick={() => handleEditAppointment(appointment)}
-                            >
-                              Detalhes
-                            </Button>
-
-                            <Button
-                              className={cn(
-                                "flex-1 md:flex-none rounded-xl shadow-lg shadow-purple-500/20",
-                                isCurrent
-                                  ? "bg-green-600 hover:bg-green-700 text-white"
-                                  : "bg-[#8C00FF] hover:bg-[#7a00e6] text-white"
+                              {appointment.notes && (
+                                <p className="text-xs text-gray-500 line-clamp-1">
+                                  <FileText className="h-3 w-3 inline mr-1" />
+                                  {appointment.notes}
+                                </p>
                               )}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStartConsultation(appointment);
-                              }}
-                            >
-                              <Stethoscope className="h-4 w-4 mr-2" />
-                              Consultar
-                            </Button>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-2 w-full md:w-auto">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 rounded-xl text-gray-400 hover:text-purple-600 hover:bg-purple-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewPatient(appointment);
+                                }}
+                              >
+                                <FileText className="h-5 w-5" />
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                className="flex-1 md:flex-none border-gray-200 hover:border-purple-300 hover:text-purple-600 rounded-xl"
+                                onClick={() => handleEditAppointment(appointment)}
+                              >
+                                Detalhes
+                              </Button>
+
+                              <Button
+                                className={cn(
+                                  "flex-1 md:flex-none rounded-xl shadow-lg",
+                                  isCurrent
+                                    ? "bg-green-600 hover:bg-green-700 text-white shadow-green-500/20"
+                                    : "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-500/20"
+                                )}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartConsultation(appointment);
+                                }}
+                              >
+                                <Stethoscope className="h-4 w-4 mr-2" />
+                                Consultar
+                              </Button>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -569,6 +559,12 @@ export function AppointmentPage() {
           appointment={editingAppointment}
           patients={patientOptions}
           existingAppointments={appointments}
+        />
+
+        {/* Calendar Integrations Dialog */}
+        <CalendarIntegrationsDialog
+          isOpen={isIntegrationsOpen}
+          onClose={() => setIsIntegrationsOpen(false)}
         />
       </div>
     </AppLayout>
