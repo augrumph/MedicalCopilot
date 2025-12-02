@@ -91,7 +91,28 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
 
     // SPECIAL CASE: TODAY - Create specific demo scenarios
     if (i === 0 && patients.length >= 4) {
-      // Scenario 1: DELAYED patient (09:00 - should be in "Anteriores" assuming current time is 10:24)
+      // Get current time and create slots around it
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+
+      // Round to nearest 30-minute slot
+      const roundedMinute = currentMinute < 30 ? '00' : '30';
+      const currentTimeSlot = `${String(currentHour).padStart(2, '0')}:${roundedMinute}`;
+
+      // Previous time slot (30 min ago)
+      const prevDate = new Date(now.getTime() - 30 * 60 * 1000);
+      const prevHour = prevDate.getHours();
+      const prevMinute = prevDate.getMinutes() < 30 ? '00' : '30';
+      const prevTimeSlot = `${String(prevHour).padStart(2, '0')}:${prevMinute}`;
+
+      // Next time slot (30 min from now)
+      const nextDate = new Date(now.getTime() + 30 * 60 * 1000);
+      const nextHour = nextDate.getHours();
+      const nextMinute = nextDate.getMinutes() < 30 ? '00' : '30';
+      const nextTimeSlot = `${String(nextHour).padStart(2, '0')}:${nextMinute}`;
+
+      // Scenario 1: DELAYED patient (previous slot - should be in "Anteriores")
       const delayedPatient = patients[0];
       appointments.push({
         id: generateAppointmentId(),
@@ -100,13 +121,13 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
         patientAge: delayedPatient.age,
         doctorName: 'Dr. Silva',
         date: dateStr,
-        startTime: '09:00',
-        endTime: '09:30',
+        startTime: prevTimeSlot,
+        endTime: prevTimeSlot.split(':')[0] + ':' + (parseInt(prevTimeSlot.split(':')[1]) + 30),
         type: 'consultation',
         status: 'scheduled',
         notes: undefined,
         patientPhone: delayedPatient.phone || undefined,
-        reason: 'Consulta de rotina - Paciente Atrasado',
+        reason: 'Consulta de rotina',
         insurance: 'unimed',
         isFirstVisit: false,
         hasExamResults: false,
@@ -116,9 +137,8 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
         updatedAt: new Date().toISOString(),
       });
       usedPatients.add(delayedPatient.id);
-      usedSlots.add(timeSlots.findIndex(s => s.start === '09:00'));
 
-      // Scenario 2: CURRENT/HERO patient (10:00 - should be the Hero Card)
+      // Scenario 2: CURRENT/HERO patient (current time - should be the Hero Card)
       const heroPatient = patients[1];
       appointments.push({
         id: generateAppointmentId(),
@@ -127,8 +147,8 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
         patientAge: heroPatient.age,
         doctorName: 'Dr. Silva',
         date: dateStr,
-        startTime: '10:00',
-        endTime: '10:30',
+        startTime: currentTimeSlot,
+        endTime: currentTimeSlot.split(':')[0] + ':' + (parseInt(currentTimeSlot.split(':')[1]) + 30),
         type: 'consultation',
         status: 'confirmed',
         notes: 'Paciente prioritário',
@@ -143,9 +163,8 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
         updatedAt: new Date().toISOString(),
       });
       usedPatients.add(heroPatient.id);
-      usedSlots.add(timeSlots.findIndex(s => s.start === '10:00'));
 
-      // Scenario 3: FUTURE patient 1 (11:00)
+      // Scenario 3: FUTURE patient 1 (next slot)
       const futurePatient1 = patients[2];
       appointments.push({
         id: generateAppointmentId(),
@@ -154,8 +173,8 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
         patientAge: futurePatient1.age,
         doctorName: 'Dr. Silva',
         date: dateStr,
-        startTime: '11:00',
-        endTime: '11:30',
+        startTime: nextTimeSlot,
+        endTime: nextTimeSlot.split(':')[0] + ':' + (parseInt(nextTimeSlot.split(':')[1]) + 30),
         type: 'checkup',
         status: 'confirmed',
         notes: undefined,
@@ -170,9 +189,13 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
         updatedAt: new Date().toISOString(),
       });
       usedPatients.add(futurePatient1.id);
-      usedSlots.add(timeSlots.findIndex(s => s.start === '11:00'));
 
-      // Scenario 4: FUTURE patient 2 (14:00)
+      // Scenario 4: FUTURE patient 2 (1 hour later)
+      const futureDate2 = new Date(now.getTime() + 60 * 60 * 1000);
+      const future2Hour = futureDate2.getHours();
+      const future2Minute = futureDate2.getMinutes() < 30 ? '00' : '30';
+      const future2TimeSlot = `${String(future2Hour).padStart(2, '0')}:${future2Minute}`;
+
       const futurePatient2 = patients[3];
       appointments.push({
         id: generateAppointmentId(),
@@ -181,8 +204,8 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
         patientAge: futurePatient2.age,
         doctorName: 'Dr. Silva',
         date: dateStr,
-        startTime: '14:00',
-        endTime: '14:30',
+        startTime: future2TimeSlot,
+        endTime: future2TimeSlot.split(':')[0] + ':' + (parseInt(future2TimeSlot.split(':')[1]) + 30),
         type: 'follow-up',
         status: 'scheduled',
         notes: undefined,
@@ -197,7 +220,6 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
         updatedAt: new Date().toISOString(),
       });
       usedPatients.add(futurePatient2.id);
-      usedSlots.add(timeSlots.findIndex(s => s.start === '14:00'));
     }
 
     // Fill remaining slots with random appointments
