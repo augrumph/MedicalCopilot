@@ -53,12 +53,7 @@ export function AppointmentPage() {
 
     // Only initialize appointments if we have patients in the database
     if (!isInitialized && patients.length > 0 && (appointments.length === 0 || !hasAppointmentsToday)) {
-      console.log('Initializing appointments from patient database...', {
-        patientsCount: patients.length,
-        appointmentsTotal: appointments.length,
-        hasToday: hasAppointmentsToday,
-        today
-      });
+
 
       // Clear old appointments if they exist but none for today
       if (appointments.length > 0 && !hasAppointmentsToday) {
@@ -67,7 +62,7 @@ export function AppointmentPage() {
 
       // Generate appointments using REAL patients from the database
       const mockAppointments = initializeMockAppointments(patients);
-      console.log('Generated appointments from patients:', mockAppointments.length, 'First date:', mockAppointments[0]?.date);
+
 
       mockAppointments.forEach(apt => {
         const { id, createdAt, updatedAt, ...data } = apt;
@@ -91,20 +86,20 @@ export function AppointmentPage() {
       return;
     }
 
-    console.log('Resetting appointments with', patients.length, 'patients...');
+
     clearAllAppointments();
     setIsInitialized(false);
 
     // Force re-initialization with real patients
     setTimeout(() => {
       const mockAppointments = initializeMockAppointments(patients);
-      console.log('Creating', mockAppointments.length, 'appointments from patient database');
+
       mockAppointments.forEach(apt => {
         const { id, createdAt, updatedAt, ...data } = apt;
         addAppointment(data);
       });
       setIsInitialized(true);
-      console.log('Appointments reset successfully!');
+
     }, 100);
   };
 
@@ -266,11 +261,28 @@ export function AppointmentPage() {
         >
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              {/* Greeting with modern typography */}
-              <div className="flex items-baseline gap-3 mb-4">
-                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
-                  Bem-vindo, <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Dr. Luzzi</span>
-                </h1>
+              {/* Header similar ao Dashboard */}
+              <div className="flex items-center justify-end gap-3 mb-4">
+                {/* Tabs Navigation - Worklist vs Agenda */}
+                <Tabs defaultValue="agenda" className="w-auto">
+                  <TabsList className="bg-gray-100 p-1 h-11">
+                    <TabsTrigger
+                      value="worklist"
+                      onClick={() => navigate('/worklist')}
+                      className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 text-sm font-semibold"
+                    >
+                      <Clock className="h-4 w-4 mr-2" />
+                      Worklist do Dia
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="agenda"
+                      className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 text-sm font-semibold"
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Agenda Completa
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
 
               {/* Stats Row - Clean & Modern */}

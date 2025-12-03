@@ -24,7 +24,7 @@ interface PrescriptionMedicationCardProps {
     controlledType?: string | null;
   };
   idx: number;
-  onEdit: (updatedMed: any) => void;
+  onEdit: (updatedMed: PrescriptionMedicationCardProps['med']) => void;
   onDelete: () => void;
 }
 

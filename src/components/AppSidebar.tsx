@@ -7,7 +7,6 @@ import {
   Activity,
   LogOut,
   FileText,
-  Calendar,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -54,11 +53,6 @@ const getMenuItems = (appContext: 'medical' | 'psychology') => {
 
 const bottomMenuItems = [
   {
-    title: 'Agenda',
-    icon: Calendar,
-    url: '/appointments',
-  },
-  {
     title: 'Configurações',
     icon: Settings,
     url: '/settings',
@@ -93,9 +87,17 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon" variant="inset" className="border-r border-gray-200">
+    <Sidebar
+      collapsible="icon"
+      variant="sidebar"
+      className="border-r border-white/20 bg-white/60 backdrop-blur-2xl shadow-sm"
+      style={{
+        WebkitBackdropFilter: 'blur(20px)',
+        backdropFilter: 'blur(20px)',
+      }}
+    >
       {/* Header */}
-      <SidebarHeader className="h-16 border-b border-gray-200 px-4 group-data-[collapsible=icon]:px-2">
+      <SidebarHeader className="h-16 border-b border-white/20 px-4 group-data-[collapsible=icon]:px-2">
         <div className="flex h-full items-center gap-3 group-data-[collapsible=icon]:justify-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8C00FF] shadow-lg flex-shrink-0">
             <Activity className="h-6 w-6 text-white" />
@@ -202,7 +204,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className="border-t border-gray-300 p-3 group-data-[collapsible=icon]:p-2">
+      <SidebarFooter className="border-t border-white/20 p-3 group-data-[collapsible=icon]:p-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-100 transition-all duration-200 group/footer cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">

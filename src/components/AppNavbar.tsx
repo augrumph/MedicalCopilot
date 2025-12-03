@@ -15,8 +15,14 @@ export function AppNavbar({ title, description }: AppNavbarProps) {
   const { privacyMode, togglePrivacyMode } = useAppStore();
 
   return (
-    <header
-      className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-gray-200 bg-background px-4 sm:px-6"
+    <div
+      className="sticky top-0 z-50 flex h-16 items-center gap-4 px-4 sm:px-6 border-b border-gray-200"
+      style={{
+        backgroundColor: 'rgba(249, 250, 251, 0.8)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
+      role="banner"
       aria-label="Barra de navegação principal"
     >
       <div className="flex items-center gap-3">
@@ -30,7 +36,7 @@ export function AppNavbar({ title, description }: AppNavbarProps) {
       <div className="flex flex-1 items-center gap-4">
         {title ? (
           <div className="flex flex-col">
-            <h1 className="text-base sm:text-lg font-semibold text-foreground">{title}</h1>
+            <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight">{title}</h1>
             {description && (
               <p className="text-xs sm:text-sm text-muted-foreground">{description}</p>
             )}
@@ -53,9 +59,8 @@ export function AppNavbar({ title, description }: AppNavbarProps) {
         <Button
           variant="ghost"
           size="icon"
-          className={`relative h-9 w-9 sm:h-10 sm:w-10 hover:bg-gray-100 transition-colors ${
-            privacyMode ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : ''
-          }`}
+          className={`relative h-9 w-9 sm:h-10 sm:w-10 hover:bg-gray-100 transition-colors ${privacyMode ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : ''
+            }`}
           onClick={togglePrivacyMode}
           aria-label={privacyMode ? 'Desativar Modo Privacidade' : 'Ativar Modo Privacidade'}
           title={privacyMode ? 'Modo Privacidade Ativo' : 'Ativar Modo Privacidade'}
@@ -89,6 +94,6 @@ export function AppNavbar({ title, description }: AppNavbarProps) {
           </Badge>
         </Button>
       </div>
-    </header>
+    </div>
   );
 }

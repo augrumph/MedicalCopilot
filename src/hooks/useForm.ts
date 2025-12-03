@@ -8,14 +8,14 @@ interface FormErrors {
   [key: string]: string;
 }
 
-interface UseFormReturn {
-  values: FormState;
+interface UseFormReturn<T> {
+  values: T;
   errors: FormErrors;
-  handleChange: (name: string, value: any) => void;
-  setFieldValue: (name: string, value: any) => void;
-  setFieldError: (name: string, error: string) => void;
+  handleChange: (name: keyof T, value: any) => void;
+  setFieldValue: (name: keyof T, value: any) => void;
+  setFieldError: (name: keyof T, error: string) => void;
   resetForm: () => void;
-  validateField: (name: string, value: any, rules: ValidationRule[]) => string | undefined;
+  validateField: (name: keyof T, value: any, rules: ValidationRule[]) => string | undefined;
   isValid: boolean;
 }
 
@@ -24,26 +24,26 @@ interface ValidationRule {
   message: string;
 }
 
-export const useForm = (initialValues: FormState = {}, initialErrors: FormErrors = {}): UseFormReturn => {
-  const [values, setValues] = useState<FormState>(initialValues);
+export const useForm = <T extends FormState>(initialValues: T, initialErrors: FormErrors = {}): UseFormReturn<T> => {
+  const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<FormErrors>(initialErrors);
 
-  const handleChange = useCallback((name: string, value: any) => {
+  const handleChange = useCallback((name: keyof T, value: any) => {
     setValues(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
+    if (errors[name as string]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   }, [errors]);
 
-  const setFieldValue = useCallback((name: string, value: any) => {
+  const setFieldValue = useCallback((name: keyof T, value: any) => {
     setValues(prev => ({ ...prev, [name]: value }));
   }, []);
 
-  const setFieldError = useCallback((name: string, error: string) => {
+  const setFieldError = useCallback((name: keyof T, error: string) => {
     setErrors(prev => ({ ...prev, [name]: error }));
   }, []);
 
-  const validateField = useCallback((name: string, value: any, rules: ValidationRule[]): string | undefined => {
+  const validateField = useCallback((name: keyof T, value: any, rules: ValidationRule[]): string | undefined => {
     for (const rule of rules) {
       if (!rule.rule(value)) {
         setErrors(prev => ({ ...prev, [name]: rule.message }));

@@ -136,11 +136,6 @@ export function ConsultationPage() {
   const startRecording = () => {
     setIsListening(true);
     // Log consent obtained event (would send to backend in production)
-    console.log('[LGPD] Consent obtained:', {
-      timestamp: new Date().toISOString(),
-      patientId: selectedPatient?.id,
-      consultationId: currentConsultation?.id,
-    });
   };
 
   const handleGenerateNote = async () => {

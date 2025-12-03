@@ -5,10 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Brain, Lightbulb, Pill, FileCheck, FileText, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 
+interface Medication {
+  name: string;
+  indication: string;
+  dosage: string;
+  duration: string;
+  type: 'primary' | 'alternative' | 'optional';
+}
+
 interface TabContentProps {
   activeTab: string;
   transcript: string;
-  suggestedMedications: any[];
+  suggestedMedications: Medication[];
   prescriptionGenerated: boolean;
   setPrescriptionGenerated: (value: boolean) => void;
 }
@@ -44,7 +52,7 @@ const TabContent: React.FC<TabContentProps> = ({
                 <p className="text-sm text-gray-600">Análise baseada em evidências clínicas</p>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center gap-2 mb-3">
@@ -275,7 +283,7 @@ const TabContent: React.FC<TabContentProps> = ({
                 <p className="text-sm text-gray-600">Personalizar preferências da consulta</p>
               </div>
             </div>
-            
+
             <Card className="border-0 bg-gradient-to-br from-gray-50 to-gray-100 shadow-md">
               <CardContent className="p-6">
                 <p className="text-gray-700">Opções de configuração da consulta serão exibidas aqui</p>

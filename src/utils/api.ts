@@ -1,37 +1,39 @@
+import { Patient, Consultation } from '@/lib/types';
+
 // Mock API service with simulated latency
 export const mockApi = {
   // Patients API
-  getPatients: async (): Promise<any[]> => {
+  getPatients: async (): Promise<Patient[]> => {
     await new Promise(resolve => setTimeout(resolve, 300));
     return [
       {
         id: '1',
         name: 'Maria Santos',
         age: 45,
-        gender: 'Feminino',
-        history: 'Hipertensão arterial',
-        allergies: 'Penicilina',
+        gender: 'feminino',
+        mainConditions: ['Hipertensão arterial'],
+        allergies: ['Penicilina'],
       },
       {
         id: '2',
         name: 'João Oliveira',
         age: 62,
-        gender: 'Masculino',
-        history: 'Diabetes tipo 2',
-        allergies: 'Nenhuma',
+        gender: 'masculino',
+        mainConditions: ['Diabetes tipo 2'],
+        allergies: ['Nenhuma'],
       },
       {
         id: '3',
         name: 'Ana Costa',
         age: 34,
-        gender: 'Feminino',
-        history: 'Asma',
-        allergies: 'Pólen',
+        gender: 'feminino',
+        mainConditions: ['Asma'],
+        allergies: ['Pólen'],
       },
     ];
   },
 
-  createPatient: async (patientData: any): Promise<any> => {
+  createPatient: async (patientData: Omit<Patient, 'id'>): Promise<Patient> => {
     await new Promise(resolve => setTimeout(resolve, 400));
     return {
       ...patientData,
@@ -40,21 +42,30 @@ export const mockApi = {
   },
 
   // Consultations API
-  getConsultations: async (): Promise<any[]> => {
+  getConsultations: async (): Promise<Consultation[]> => {
     await new Promise(resolve => setTimeout(resolve, 300));
     return [
       {
         id: '1',
         patientId: '1',
-        date: '2023-10-15',
+        startedAt: '2023-10-15',
+        status: 'finished',
         transcript: 'O paciente apresenta sintomas de dor de cabeça persistente...',
-        aiResponse: 'Com base nos sintomas relatados, sugiro considerar: 1) Hipertensão, 2) Enxaqueca, 3) Desidratação.',
-        diagnosis: 'Dor de cabeça tensional'
+        aiSuggestions: {
+          suggestedQuestions: [],
+          diagnosesMostLikely: [],
+          diagnosesPossible: [],
+          diagnosesCantMiss: [],
+          diagnosesToConsider: [],
+          diagnosesUnlikely: [],
+          reminders: []
+        },
+        doctorNotes: 'Dor de cabeça tensional'
       }
     ];
   },
 
-  createConsultation: async (consultationData: any): Promise<any> => {
+  createConsultation: async (consultationData: Omit<Consultation, 'id'>): Promise<Consultation> => {
     await new Promise(resolve => setTimeout(resolve, 500));
     return {
       ...consultationData,
@@ -77,7 +88,7 @@ export const mockApi = {
   // AI Reasoning API
   getAIReasoning: async (_transcript: string): Promise<any> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     return {
       diagnosticHypotheses: [
         "Hipertensão arterial",

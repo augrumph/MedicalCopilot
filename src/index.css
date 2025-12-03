@@ -105,7 +105,7 @@
     @apply border-border outline-ring/50;
   }
   html {
-    font-family: 'Inter', 'SF Pro', system-ui, sans-serif;
+    font-family: 'Manrope', 'Inter', 'SF Pro', system-ui, sans-serif;
   }
   body {
     @apply bg-background text-foreground antialiased;

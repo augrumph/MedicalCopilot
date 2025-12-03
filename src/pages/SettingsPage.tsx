@@ -205,7 +205,7 @@ function SettingsPage() {
                       ? 'bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white shadow-md hover:opacity-90'
                       : 'text-gray-700 hover:bg-gray-200'
                   )}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 >
                   <Icon className="mr-2 h-4 w-4" />
                   {tab.label}
@@ -432,8 +432,8 @@ function SettingsPage() {
                             MedicalCopilot atua como <strong>Operador de Dados</strong> conforme LGPD (Lei Geral de Proteção de Dados).
                           </p>
                           <p className="text-xs text-gray-600">
-                            ✓ Seus dados médicos não são usados para treinar modelos públicos de IA<br/>
-                            ✓ Todas as transcrições são criptografadas em trânsito e em repouso<br/>
+                            ✓ Seus dados médicos não são usados para treinar modelos públicos de IA<br />
+                            ✓ Todas as transcrições são criptografadas em trânsito e em repouso<br />
                             ✓ Você tem controle total sobre retenção e exclusão de dados
                           </p>
                         </div>

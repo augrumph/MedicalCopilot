@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import ContextRouter from './components/ContextRouter';
 import { NotificationDialog } from './components/NotificationDialog';
+import { GlobalCommandPalette } from './components/GlobalCommandPalette';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +35,7 @@ function App() {
       <BrowserRouter>
         <div className="App">
           <ContextRouter />
+          <GlobalCommandPalette />
           <NotificationDialog
             isOpen={isNotificationOpen}
             onClose={() => setIsNotificationOpen(false)}

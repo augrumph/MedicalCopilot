@@ -38,7 +38,9 @@
       "Bash(node -e:*)",
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npx shadcn-ui add:*)",
+      "Bash(npx shadcn:*)"
     ],
     "deny": [],
     "ask": []

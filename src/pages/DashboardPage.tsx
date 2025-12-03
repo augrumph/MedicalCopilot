@@ -6,9 +6,15 @@ import {
   FileText,
   Users,
   CheckCircle2,
-  ChevronRight,
   Calendar,
   Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Pill,
+  AlertCircle,
+  Lightbulb,
+  AlertTriangle,
+  CheckCircle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/AppLayout';
@@ -17,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppStore } from '@/stores/appStore';
 import { useAppointmentStore } from '@/stores/appointmentStore';
 import { initializeMockAppointments } from '@/lib/data/mockAppointments';
@@ -29,6 +36,7 @@ const DashboardPage = () => {
   const { startConsultation, patients, privacyMode, consultations } = useAppStore();
   const { appointments, addAppointment, clearAllAppointments } = useAppointmentStore();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
   // Get today's date
   const today = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
@@ -135,6 +143,28 @@ const DashboardPage = () => {
     return patientConsultations[0];
   };
 
+  // Get recent consultations (last 3)
+  const getRecentConsultations = (patientId: string) => {
+    return consultations
+      .filter(c => c.patientId === patientId)
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+      .slice(0, 3);
+  };
+
+  // Get patient full info for expanded card
+  const getPatientFullInfo = (patientId: string) => {
+    const patient = patients.find(p => p.id === patientId);
+    const recentConsultations = getRecentConsultations(patientId);
+
+    return {
+      patient,
+      allergies: patient?.allergies || [],
+      medications: patient?.medications || [],
+      mainConditions: patient?.mainConditions || [],
+      recentConsultations,
+    };
+  };
+
   return (
     <AppLayout>
       <div className="min-h-full space-y-6">
@@ -146,10 +176,31 @@ const DashboardPage = () => {
           <div className="flex items-center justify-between">
             <div className="flex-1">
               {/* Greeting with modern typography */}
-              <div className="flex items-baseline gap-3 mb-4">
+              <div className="flex items-center justify-between gap-3 mb-4">
                 <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
                   Bem-vindo, <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Dr. Luzzi</span>
                 </h1>
+
+                {/* Tabs Navigation - Worklist vs Agenda */}
+                <Tabs defaultValue="worklist" className="w-auto">
+                  <TabsList className="bg-gray-100 p-1 h-11">
+                    <TabsTrigger
+                      value="worklist"
+                      className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 text-sm font-semibold"
+                    >
+                      <Clock className="h-4 w-4 mr-2" />
+                      Worklist do Dia
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="agenda"
+                      onClick={() => navigate('/appointments')}
+                      className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 text-sm font-semibold"
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Agenda Completa
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
 
               {/* Stats Row - Clean & Modern */}
@@ -310,7 +361,10 @@ const DashboardPage = () => {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                      <div className="group relative rounded-xl border border-gray-200 hover:border-purple-300 bg-white hover:shadow-md p-4 transition-all duration-200">
+                      <div
+                        onClick={() => setExpandedCard(expandedCard === apt.id ? null : apt.id)}
+                        className="rounded-xl border border-gray-200 hover:border-purple-300 bg-white hover:shadow-md p-4 transition-all duration-200 cursor-pointer"
+                      >
                         <div className="flex items-center gap-4">
                           {/* Time */}
                           <div className="text-center min-w-[60px]">
@@ -374,26 +428,245 @@ const DashboardPage = () => {
                           {/* Actions */}
                           <div className="flex items-center gap-2">
                             {lastConsultation && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(`/consultation/${lastConsultation.id}`)}
-                                className="h-10 border-gray-300 text-gray-700 hover:bg-gray-50"
-                              >
-                                <FileText className="h-4 w-4 mr-1.5" />
-                                Histórico
-                              </Button>
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedCard(expandedCard === apt.id ? null : apt.id);
+                                  }}
+                                  className="h-10 px-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                                >
+                                  {expandedCard === apt.id ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/consultation/${lastConsultation.id}`);
+                                  }}
+                                  className="h-10 border-gray-300 text-gray-700 hover:bg-gray-50"
+                                >
+                                  <FileText className="h-4 w-4 mr-1.5" />
+                                  Histórico
+                                </Button>
+                              </>
                             )}
                             <Button
                               size="sm"
-                              onClick={() => handleStartConsultation(apt)}
-                              className="h-10 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartConsultation(apt);
+                              }}
+                              className="h-10 px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
                             >
-                              Iniciar
-                              <ChevronRight className="h-4 w-4 ml-1" />
+                              <Stethoscope className="h-4 w-4 mr-2" />
+                              Consulta
                             </Button>
                           </div>
                         </div>
+
+                        {/* Informações da Última Consulta - Expansível */}
+                        {expandedCard === apt.id && (() => {
+                          const patientInfo = getPatientFullInfo(apt.patientId);
+                          const { patient, allergies, medications, recentConsultations } = patientInfo;
+                          const lastConsult = recentConsultations[0];
+                          const aiSuggestions = lastConsult?.aiSuggestions;
+
+                          return (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="mt-4 pt-4 border-t border-gray-200"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* Info Básica */}
+                              <div className="flex items-center gap-4 mb-4 px-1">
+                                <div className="text-sm">
+                                  <span className="text-gray-500">Idade:</span>
+                                  <span className="ml-1 font-semibold text-gray-900">{patient?.age}a</span>
+                                </div>
+                                <div className="text-sm">
+                                  <span className="text-gray-500">Sexo:</span>
+                                  <span className="ml-1 font-semibold text-gray-900">
+                                    {patient?.gender === 'masculino' ? 'M' : patient?.gender === 'feminino' ? 'F' : '-'}
+                                  </span>
+                                </div>
+                                {lastConsult && (
+                                  <div className="text-sm">
+                                    <span className="text-gray-500">Últ. consulta:</span>
+                                    <span className="ml-1 font-semibold text-gray-900">
+                                      {new Date(lastConsult.startedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Grid Layout */}
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {/* COLUNA ESQUERDA */}
+                                <div className="space-y-3">
+                                  {/* Diagnóstico */}
+                                  {aiSuggestions?.diagnosesMostLikely && aiSuggestions.diagnosesMostLikely.length > 0 && (
+                                    <Card className="border-2 border-purple-200 shadow-md">
+                                      <CardContent className="p-3">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <div className="p-1.5 bg-purple-100 rounded-lg">
+                                            <Stethoscope className="h-3.5 w-3.5 text-purple-600" />
+                                          </div>
+                                          <h5 className="text-xs font-bold text-gray-900">DIAGNÓSTICO</h5>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {aiSuggestions.diagnosesMostLikely.map((diagnosis: string, idx: number) => (
+                                            <Badge key={idx} className="bg-purple-100 text-purple-700 border-0 text-xs">
+                                              {diagnosis}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  )}
+
+                                  {/* Alergias */}
+                                  {allergies.length > 0 && (
+                                    <Card className="border-2 border-red-200 shadow-md">
+                                      <CardContent className="p-3">
+                                        <p className="text-[10px] font-bold text-red-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+                                          <AlertCircle className="h-3 w-3" />
+                                          Alergias Conhecidas
+                                        </p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {allergies.map((allergy: string, idx: number) => (
+                                            <Badge key={idx} className="bg-red-100 text-red-700 border-red-300 text-[10px]">
+                                              {allergy}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  )}
+
+                                  {/* Medicações */}
+                                  {medications.length > 0 && (
+                                    <Card className="border-2 border-blue-200 shadow-md">
+                                      <CardContent className="p-3">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <div className="p-1.5 bg-blue-100 rounded-lg">
+                                            <Pill className="h-3.5 w-3.5 text-blue-600" />
+                                          </div>
+                                          <h5 className="text-xs font-bold text-gray-900">MEDICAÇÕES</h5>
+                                        </div>
+                                        <div className="space-y-1">
+                                          {medications.slice(0, 4).map((med: string, idx: number) => (
+                                            <div key={idx} className="flex items-center gap-2 text-xs text-gray-700">
+                                              <div className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+                                              {med}
+                                            </div>
+                                          ))}
+                                          {medications.length > 4 && (
+                                            <span className="text-xs text-gray-500 ml-3.5">+{medications.length - 4} mais</span>
+                                          )}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  )}
+
+                                  {/* Não Perder */}
+                                  {aiSuggestions?.diagnosesCantMiss && aiSuggestions.diagnosesCantMiss.length > 0 && (
+                                    <Card className="border-2 border-orange-200 shadow-md bg-orange-50/30">
+                                      <CardContent className="p-3">
+                                        <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+                                          <AlertTriangle className="h-3 w-3" />
+                                          Não Perder
+                                        </p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {aiSuggestions.diagnosesCantMiss.map((diagnosis: string, idx: number) => (
+                                            <Badge key={idx} className="bg-orange-100 text-orange-900 border-orange-300 text-[10px]">
+                                              {diagnosis}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  )}
+                                </div>
+
+                                {/* COLUNA DIREITA */}
+                                <div className="space-y-3">
+                                  {/* Perguntas Sugeridas */}
+                                  {aiSuggestions?.suggestedQuestions && aiSuggestions.suggestedQuestions.length > 0 && (
+                                    <Card className="border-2 border-purple-200 shadow-md">
+                                      <CardContent className="p-3">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <div className="p-1.5 bg-purple-100 rounded-lg">
+                                            <Lightbulb className="h-3.5 w-3.5 text-purple-600" />
+                                          </div>
+                                          <h5 className="text-xs font-bold text-gray-900">PERGUNTAS SUGERIDAS</h5>
+                                        </div>
+                                        <div className="space-y-2">
+                                          {aiSuggestions.suggestedQuestions.slice(0, 3).map((question: string, idx: number) => (
+                                            <div key={idx} className="flex items-start gap-2">
+                                              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[10px] font-bold">
+                                                {idx + 1}
+                                              </span>
+                                              <span className="text-xs text-gray-700 leading-relaxed">{question}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  )}
+
+                                  {/* Lembretes */}
+                                  {aiSuggestions?.reminders && aiSuggestions.reminders.length > 0 && (
+                                    <Card className="border-2 border-gray-200 shadow-md">
+                                      <CardContent className="p-3">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <div className="p-1.5 bg-gray-100 rounded-lg">
+                                            <CheckCircle className="h-3.5 w-3.5 text-gray-600" />
+                                          </div>
+                                          <h5 className="text-xs font-bold text-gray-900">LEMBRETES</h5>
+                                        </div>
+                                        <div className="space-y-1">
+                                          {aiSuggestions.reminders.slice(0, 3).map((reminder: string, idx: number) => (
+                                            <div key={idx} className="flex items-center gap-2 text-xs text-gray-700">
+                                              <div className="h-1.5 w-1.5 rounded-full bg-gray-600" />
+                                              {reminder}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Botão Ver Consulta Completa */}
+                              {lastConsult && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/consultation/${lastConsult.id}`);
+                                  }}
+                                  className="w-full mt-3 h-8 text-xs"
+                                >
+                                  <FileText className="h-3.5 w-3.5 mr-1.5" />
+                                  Ver Consulta Completa
+                                </Button>
+                              )}
+                            </motion.div>
+                          );
+                        })()}
                       </div>
                     </motion.div>
                   );
@@ -515,6 +788,7 @@ const DashboardPage = () => {
           </motion.div>
         )}
       </div>
+
     </AppLayout>
   );
 };

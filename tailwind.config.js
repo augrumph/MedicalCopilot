@@ -50,7 +50,7 @@ export default {
         ring: "hsl(var(--ring))",
       },
       fontFamily: {
-        sans: ['Inter', 'SF Pro', 'system-ui', 'sans-serif'],
+        sans: ['Manrope', 'system-ui', 'sans-serif'],
       }
     },
   },

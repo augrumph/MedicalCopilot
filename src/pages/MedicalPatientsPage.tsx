@@ -106,7 +106,7 @@ const MedicalPatientsPage = () => {
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.2 }}
-                                className="text-xl md:text-2xl font-bold text-white"
+                                className="text-2xl md:text-3xl font-bold text-white tracking-tight"
                             >
                                 Gerenciar Pacientes
                             </motion.h1>
@@ -115,7 +115,7 @@ const MedicalPatientsPage = () => {
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.3 }}
-                                className="text-xs md:text-sm text-white/90"
+                                className="text-sm md:text-base text-white/90 font-medium"
                             >
                                 Visualize e gerencie todos os seus pacientes cadastrados
                             </motion.p>
@@ -233,7 +233,7 @@ const MedicalPatientsPage = () => {
                                                 </Avatar>
 
                                                 <div className="flex-1 min-w-0">
-                                                    <h3 className="font-bold text-lg text-gray-900 mb-1 truncate">
+                                                    <h3 className="font-bold text-xl text-gray-900 mb-1 truncate tracking-tight">
                                                         {patient.name}
                                                     </h3>
                                                     <div className="flex items-center gap-2 flex-wrap">

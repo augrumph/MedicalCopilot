@@ -13,9 +13,15 @@ interface AIMessage {
   priority?: 'low' | 'medium' | 'high';
 }
 
+interface PatientData {
+  mainConditions?: string[];
+  medications?: string[];
+  allergies?: string[];
+}
+
 interface AIChatPanelProps {
   transcript: string;
-  patientData?: any;
+  patientData?: PatientData;
   isActive: boolean;
 }
 
@@ -196,7 +202,7 @@ export function AIChatPanel({ transcript, patientData, isActive }: AIChatPanelPr
       }
 
       // Análise de dados do paciente
-      if (patientData?.mainConditions?.length > 0 && messages.length < 2) {
+      if (patientData?.mainConditions && patientData.mainConditions.length > 0 && messages.length < 2) {
         newMessages.push({
           id: (Date.now() + 14).toString(),
           type: 'reminder',
@@ -206,7 +212,7 @@ export function AIChatPanel({ transcript, patientData, isActive }: AIChatPanelPr
         });
       }
 
-      if (patientData?.medications?.length > 0 && lineCount > 3 && messages.length < 5) {
+      if (patientData?.medications && patientData.medications.length > 0 && lineCount > 3 && messages.length < 5) {
         newMessages.push({
           id: (Date.now() + 15).toString(),
           type: 'reminder',
@@ -216,7 +222,7 @@ export function AIChatPanel({ transcript, patientData, isActive }: AIChatPanelPr
         });
       }
 
-      if (patientData?.allergies?.length > 0 && lineCount > 2 && messages.length < 3) {
+      if (patientData?.allergies && patientData.allergies.length > 0 && lineCount > 2 && messages.length < 3) {
         newMessages.push({
           id: (Date.now() + 16).toString(),
           type: 'reminder',
