@@ -40,8 +40,6 @@ const DashboardPage = () => {
 
   // Get today's date
   const today = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
-  // Use state for now to ensure it updates
-  const [now] = useState(() => new Date());
 
   // Initialize mock data
   useEffect(() => {
@@ -86,24 +84,21 @@ const DashboardPage = () => {
     return { total, completed, completionRate, totalTimeSaved };
   }, [todayAppointments, consultations, today]);
 
-  // Find current patient (within ±30min)
+  // Find current patient (always show next pending or in-progress patient)
   const currentPatient = useMemo(() => {
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    // First, check if there's a patient in-progress
+    const inProgress = todayAppointments.find(apt => apt.status === 'in-progress');
+    if (inProgress) return inProgress;
 
-    return todayAppointments.find(apt => {
-      if (apt.status === 'in-progress') return true;
-      if (apt.status === 'completed' || apt.status === 'cancelled') return false;
-
-      const [hours, minutes] = apt.startTime.split(':').map(Number);
-      const aptMinutes = hours * 60 + minutes;
-      const diff = Math.abs(aptMinutes - currentMinutes);
-
-      return diff <= 30;
-    });
-  }, [todayAppointments, now]);
+    // Otherwise, return the first scheduled (not completed/cancelled) patient
+    return todayAppointments.find(apt =>
+      apt.status !== 'completed' && apt.status !== 'cancelled'
+    );
+  }, [todayAppointments]);
 
   // Split appointments into future and past
   const { futureAppointments, pastAppointments } = useMemo(() => {
+    const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
     const future: Appointment[] = [];
@@ -124,7 +119,7 @@ const DashboardPage = () => {
     });
 
     return { futureAppointments: future, pastAppointments: past };
-  }, [todayAppointments, currentPatient, now]);
+  }, [todayAppointments, currentPatient]);
 
   // Handle start consultation
   const handleStartConsultation = (appointment: Appointment) => {
