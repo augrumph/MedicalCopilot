@@ -229,6 +229,13 @@ export function ConsultationPage() {
 
   const getCardStyles = () => { /* Mantido */ return { border: 'border-gray-200', bg: 'bg-white', iconBg: 'bg-gray-100', iconColor: 'text-gray-600', icon: Activity }; };
 
+  // Redirecionar para worklist se não houver paciente selecionado
+  useEffect(() => {
+    if (!selectedPatient) {
+      navigate('/worklist');
+    }
+  }, [selectedPatient, navigate]);
+
   if (!selectedPatient) return null;
   const initials = getPatientInitials(selectedPatient.name);
 

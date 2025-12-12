@@ -248,11 +248,10 @@ export function HistoryPage() {
               variant="ghost"
               size="sm"
               onClick={() => setViewMode('grid')}
-              className={`h-8 px-3 rounded-lg transition-all ${
-                viewMode === 'grid'
-                  ? 'bg-white shadow-sm text-gray-900'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`h-8 px-3 rounded-lg transition-all ${viewMode === 'grid'
+                ? 'bg-white shadow-sm text-gray-900'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               <LayoutGrid className="h-4 w-4 mr-1.5" />
               Grade
@@ -261,11 +260,10 @@ export function HistoryPage() {
               variant="ghost"
               size="sm"
               onClick={() => setViewMode('list')}
-              className={`h-8 px-3 rounded-lg transition-all ${
-                viewMode === 'list'
-                  ? 'bg-white shadow-sm text-gray-900'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`h-8 px-3 rounded-lg transition-all ${viewMode === 'list'
+                ? 'bg-white shadow-sm text-gray-900'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               <LayoutList className="h-4 w-4 mr-1.5" />
               Lista
@@ -276,11 +274,10 @@ export function HistoryPage() {
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
-            className={`h-10 rounded-xl px-4 border-gray-200 ${
-              showFilters
-                ? 'border-[#8C00FF] bg-[#8C00FF]/5 text-[#8C00FF]'
-                : 'hover:border-gray-300'
-            }`}
+            className={`h-10 rounded-xl px-4 border-gray-200 ${showFilters
+              ? 'border-[#8C00FF] bg-[#8C00FF]/5 text-[#8C00FF]'
+              : 'hover:border-gray-300'
+              }`}
           >
             <Filter className="h-4 w-4 mr-2" />
             Filtros
