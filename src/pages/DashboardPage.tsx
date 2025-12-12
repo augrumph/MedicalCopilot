@@ -43,15 +43,31 @@ const DashboardPage = () => {
 
   // Initialize mock data
   useEffect(() => {
-    // Check if we need to reinitialize (version bump or empty)
-    const APPOINTMENTS_VERSION = '2.0'; // Bump this to force refresh
+    // Check if we need to reinitialize
+    const APPOINTMENTS_VERSION = '2.1'; // Bump this to force refresh
     const currentVersion = localStorage.getItem('appointments-version');
+    const lastGeneratedDate = localStorage.getItem('appointments-last-date');
 
-    if (!isInitialized && (appointments.length === 0 || currentVersion !== APPOINTMENTS_VERSION)) {
+    // Get today's date for comparison
+    const todayStr = new Date().toLocaleDateString('en-CA');
+
+    // Regenerate if:
+    // 1. Version changed
+    // 2. No appointments exist
+    // 3. Date has changed since last generation (ensures fresh appointments for today)
+    const shouldRegenerate =
+      !isInitialized && (
+        appointments.length === 0 ||
+        currentVersion !== APPOINTMENTS_VERSION ||
+        lastGeneratedDate !== todayStr
+      );
+
+    if (shouldRegenerate) {
       clearAllAppointments();
       const mockAppointments = initializeMockAppointments(patients);
       mockAppointments.forEach(apt => addAppointment(apt));
       localStorage.setItem('appointments-version', APPOINTMENTS_VERSION);
+      localStorage.setItem('appointments-last-date', todayStr);
       setIsInitialized(true);
     }
   }, [isInitialized, appointments.length, addAppointment, clearAllAppointments, patients]);

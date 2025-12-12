@@ -1,889 +1,548 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
-  FileText,
-  User,
-  Mic,
-  MicOff,
-  Brain,
-  Lightbulb,
-  Pill,
-  AlertTriangle,
-  CheckCircle2,
-  FileCheck,
-  CheckCircle,
-  Target,
-  Heart,
-  Clock,
-  XCircle,
-  Stethoscope,
-  Activity,
-  Calendar,
-  StickyNote
+  Mic, MicOff, ChevronLeft, Save,
+  Brain, Pill, Activity,
+  AlertCircle, Plus,
+  Lightbulb, Send, FileCheck, FileText,
+  User, Bot, X,
+  ChevronDown, ChevronUp, Eye,
+  QrCode, ShieldCheck, FileSignature,
+  Search, AlertTriangle, Printer,
+  Edit3, Trash2, Stethoscope, Copy, Check,
+  Thermometer, HeartPulse, Bold, Italic, List,
+  MoreHorizontal, Sparkles, Lock, Clock, Baby,
+  History, LayoutTemplate, Calendar, ArrowRight
 } from 'lucide-react';
-import MedicationCard from '@/components/MedicationCard';
-import { AppLayout } from '@/components/AppLayout';
-import { AIChatPanel } from '@/components/consultation/AIChatPanel';
-import { MagicCopySection } from '@/components/consultation/MagicCopySection';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { useAppStore } from '@/stores/appStore';
-import { generateClinicalNote } from '@/lib/mockApi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn, getPatientAvatar } from '@/lib/utils';
-import { getContextConfig } from '@/lib/contextConfig';
-import { PsychologyClinicalHypothesis } from '@/components/psychology/PsychologyClinicalHypothesis';
-import { TherapeuticInterventions } from '@/components/psychology/TherapeuticInterventions';
-import { SessionThemesAndGoals } from '@/components/psychology/SessionThemesAndGoals';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Imports do Projeto
+import { AppLayout } from '@/components/AppLayout';
+import { useAppStore } from '@/stores/appStore';
+import { getPatientInitials, cn } from '@/lib/utils';
+
+// UI Components
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
+
+// --- MOCK DATABASE: MEDICAMENTOS ---
+const MOCK_DRUG_DB = [
+  { name: 'Dipirona Monohidratada 500mg', lab: 'Medley', type: 'Comprimido', group: 'Analgésico', alert: true, msg: 'Paciente alérgico a Dipirona' },
+  { name: 'Paracetamol 750mg', lab: 'Tylenol', type: 'Comprimido', group: 'Analgésico', alert: false },
+  { name: 'Amoxicilina 500mg', lab: 'Eurofarma', type: 'Cápsula', group: 'Antibiótico', alert: false },
+  { name: 'Prednisolona 20mg', lab: 'Medley', type: 'Comprimido', group: 'Corticóide', alert: false },
+  { name: 'Loratadina 10mg', lab: 'Cimed', type: 'Comprimido', group: 'Antialérgico', alert: false },
+  { name: 'Losartana 50mg', lab: 'EMS', type: 'Comprimido', group: 'Anti-hipertensivo', alert: false },
+];
+
+// --- MOCK DATABASE: HISTÓRICO DO PACIENTE ---
+const MOCK_HISTORY = [
+  { id: 1, date: '15/10/2025', type: 'Retorno', cid: 'I10', diagnosis: 'Hipertensão Essencial', doctor: 'Dr. Silva', notes: 'PA controlada (120/80). Mantida medicação.' },
+  { id: 2, date: '02/08/2025', type: 'Urgência', cid: 'J06.9', diagnosis: 'Infecção VAS', doctor: 'Dra. Ana', notes: 'Febre e coriza. Prescrito sintomáticos.' },
+  { id: 3, date: '10/01/2025', type: 'Rotina', cid: 'Z00.0', diagnosis: 'Check-up Geral', doctor: 'Dr. Silva', notes: 'Exames normais. Orientado sobre dieta.' },
+];
+
+// --- MOCK DATABASE: TEMPLATES SOAP ---
+const SOAP_TEMPLATES = [
+  {
+    id: 'ivas',
+    name: 'IVAS / Gripe',
+    category: 'Geral',
+    content: {
+      subjetivo: 'Paciente refere rinorreia hialina, obstrução nasal e tosse seca há 3 dias. Nega febre aferida. Nega dispneia.',
+      objetivo: 'BEG, corado, hidratado, eupneico. Oroscopia: Hiperemia leve, sem exsudato. Otoscopia: Membranas íntegras e brilhantes. AR: MV+ s/ RA.',
+      avaliacao: 'Infecção de Vias Aéreas Superiores (J06.9).',
+      plano: 'Lavagem nasal com SF0.9%. Dipirona se dor/febre. Hidratação oral vigorosa. Sinais de alerta orientados.'
+    }
+  },
+  {
+    id: 'has',
+    name: 'Hipertensão (Rotina)',
+    category: 'Crônicos',
+    content: {
+      subjetivo: 'Paciente em seguimento de HAS. Nega cefaleia, tontura ou dor torácica. Refere boa adesão medicamentosa e dieta hipossódica.',
+      objetivo: 'BEG. PA: 130/80 mmHg. FC: 72 bpm. Ritmo regular 2T sem sopros. Edema de MMII ausente.',
+      avaliacao: 'Hipertensão Arterial Sistêmica controlada (I10).',
+      plano: 'Manter Losartana 50mg 1x/dia. Solicitar exames de controle anual (Creatinina, Potássio, Glicemia). Retorno em 6 meses.'
+    }
+  },
+  {
+    id: 'lombalgia',
+    name: 'Lombalgia Mecânica',
+    category: 'Ortopedia',
+    content: {
+      subjetivo: 'Dor em região lombar baixa iniciada após esforço físico. Sem irradiação para MMII. Piora ao movimento.',
+      objetivo: 'Dor à palpação de musculatura paravertebral lombar. Lasegue negativo bilateral. Reflexos preservados. Força motora preservada.',
+      avaliacao: 'Lombalgia mecânica (M54.5).',
+      plano: 'Analgesia escalonada. Repouso relativo por 2 dias. Calor local. Orientações posturais.'
+    }
+  }
+];
+
+// --- TIPOS ---
+interface AICard {
+  id: string;
+  source: 'ai' | 'user';
+  type?: 'alert' | 'suggestion' | 'diagnostic' | 'action' | 'interaction';
+  title?: string;
+  content: string;
+  timestamp: string;
+  actionLabel?: string;
+  tags?: string[];
+}
 
 export function ConsultationPage() {
   const navigate = useNavigate();
-  const currentConsultation = useAppStore(state => state.currentConsultation);
+
+  // Stores
   const selectedPatient = useAppStore(state => state.selectedPatient);
   const updateTranscript = useAppStore(state => state.updateTranscript);
-  const setDoctorNotes = useAppStore(state => state.setDoctorNotes);
-  const appContext = useAppStore(state => state.appContext);
-  const config = getContextConfig(appContext);
+  const currentConsultation = useAppStore(state => state.currentConsultation);
 
+  // Global States
+  const [activeTab, setActiveTab] = useState('live');
   const [isListening, setIsListening] = useState(false);
-  const [isGeneratingNote, setIsGeneratingNote] = useState(false);
-  const [noteGenerated, setNoteGenerated] = useState(false);
-  const [showNoteSection, setShowNoteSection] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ai' | 'diagnosis' | 'medication' | 'prescription' | 'themes' | 'interventions' | 'clinical-note'>('ai');
-  const [prescriptionGenerated, setPrescriptionGenerated] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [userQuery, setUserQuery] = useState('');
+  const [feedCards, setFeedCards] = useState<AICard[]>([]);
+  const [minimizedCards, setMinimizedCards] = useState<Set<string>>(new Set());
 
-  // LGPD: Consent Modal
-  const [showConsentModal, setShowConsentModal] = useState(false);
-  const [dontShowConsentToday, setDontShowConsentToday] = useState(false);
+  // UI Toggles (Modals/Drawers)
+  const [showHistory, setShowHistory] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
-  // FASE 2: Stop Button Safety
-  const [showStopConfirmation, setShowStopConfirmation] = useState(false);
+  // SOAP State
+  const [doctorNotes, setDoctorNotes] = useState({
+    subjetivo: '',
+    objetivo: '',
+    avaliacao: '',
+    plano: ''
+  });
 
-  // FASE 2: Quick Notes
-  const [quickNotes, setQuickNotes] = useState('');
+  // Atestado State
+  const [atestadoData, setAtestadoData] = useState({
+    dias: '3',
+    cid: 'J03.0',
+    exibirCid: false,
+    tipo: 'afastamento' as 'afastamento' | 'comparecimento' | 'acompanhamento',
+    local: 'São Paulo',
+    data: new Date().toLocaleDateString('pt-BR'),
+    textoLivre: '',
+    periodo: 'Manhã' as 'Manhã' | 'Tarde' | 'Integral'
+  });
+
+  // Receita State
+  const [memedSearch, setMemedSearch] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [prescricaoMemed, setPrescricaoMemed] = useState<any[]>([]);
+
+  // Refs
+  const feedEndRef = useRef<HTMLDivElement>(null);
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
+
+  // --- EFEITOS ---
+  useEffect(() => { setActiveTab('live'); }, []);
 
   useEffect(() => {
-    if (!isListening) return;
+    let interval: number;
+    if (isListening) interval = setInterval(() => setElapsedTime(prev => prev + 1), 1000) as unknown as number;
+    return () => clearInterval(interval);
+  }, [isListening]);
 
-    const mockTranscriptParts = [
-      'Paciente: Doutor, estou com dor de garganta há 3 dias.',
-      'Médico: Entendi. A dor é constante ou piora em algum momento?',
-      'Paciente: Piora quando engulo, principalmente pela manhã.',
-      'Médico: Tem febre? Tosse?',
-      'Paciente: Tive febre ontem à noite, 38 graus. Tosse não.',
-      'Médico: Vou examinar sua garganta agora...',
-      'Médico: Observo hiperemia e edema nas amígdalas. Sem placas visíveis.',
-      'Paciente: É grave, doutor?',
-      'Médico: Parece ser uma faringite. Vou prescrever um tratamento.',
+  // Atestado Logic
+  useEffect(() => {
+    const nome = selectedPatient?.name?.toUpperCase() || 'PACIENTE';
+    const doc = "RG: 00.000.000-0";
+    let texto = "";
+
+    if (atestadoData.tipo === 'afastamento') {
+      const diasTexto = atestadoData.dias === '1' ? '01 (um) dia' : `0${atestadoData.dias} dias`;
+      texto = `Atesto para os devidos fins, a pedido do interessado e sob minha responsabilidade médica, que o(a) Sr(a). ${nome}, portador(a) do ${doc}, foi atendido(a) nesta data e necessita de ${diasTexto} de afastamento de suas atividades laborais e escolares, a partir de hoje, por motivo de saúde${atestadoData.exibirCid ? ` (CID-10 ${atestadoData.cid})` : ''}.`;
+    } else if (atestadoData.tipo === 'comparecimento') {
+      texto = `Declaro para fins de justificativa de horas que o(a) Sr(a). ${nome}, portador(a) do ${doc}, compareceu a este serviço médico nesta data, no período da ${atestadoData.periodo}, para realização de consulta e exames.`;
+    } else {
+      texto = `Atesto que o(a) Sr(a). RESPONSÁVEL LEGAL, portador(a) do CPF 000.000.000-00, compareceu a esta unidade na qualidade de acompanhante do paciente ${nome}, durante o período da ${atestadoData.periodo}.`;
+    }
+    setAtestadoData(prev => ({ ...prev, textoLivre: texto }));
+  }, [atestadoData.dias, atestadoData.tipo, atestadoData.exibirCid, atestadoData.cid, atestadoData.periodo, selectedPatient]);
+
+  // Simulação IA
+  useEffect(() => {
+    if (!isListening) return;
+    const steps = [
+      { time: 2000, transcript: "Médico: Bom dia. Me conte o que está sentindo.", card: null },
+      { time: 5000, transcript: "Paciente: Estou com muita dor de garganta e febre.", card: { id: '1', source: 'ai', type: 'diagnostic', title: 'Hipótese Diagnóstica', content: 'Sintomas sugerem Amigdalite.', tags: ['CID-10 J03'], timestamp: '10:00' } as AICard },
+      { time: 9000, transcript: "Médico: Alguma alergia?", card: null },
+      { time: 12000, transcript: "Paciente: Alergia a Dipirona.", card: { id: '2', source: 'ai', type: 'alert', title: 'Alerta Crítico', content: 'Alergia a DIPIRONA detectada.', timestamp: '10:01' } as AICard }
     ];
 
-    let partIndex = 0;
-    const interval = setInterval(() => {
-      if (partIndex < mockTranscriptParts.length) {
-        const currentText = currentConsultation?.transcript || '';
-        const newText = currentText
-          ? `${currentText}\n${mockTranscriptParts[partIndex]}`
-          : mockTranscriptParts[partIndex];
-        updateTranscript(newText);
-        partIndex++;
-      } else {
-        setIsListening(false);
-      }
-    }, 2500);
+    let timeouts: number[] = [];
+    steps.forEach(step => {
+      const t = setTimeout(() => {
+        const current = useAppStore.getState().currentConsultation?.transcript || '';
+        updateTranscript(current + '\n' + step.transcript);
+        if (step.card) setFeedCards(prev => [...prev, step.card!]);
+      }, step.time);
+      timeouts.push(t);
+    });
+    return () => timeouts.forEach(clearTimeout);
+  }, [isListening, updateTranscript]);
 
-    return () => clearInterval(interval);
-  }, [isListening, currentConsultation?.transcript, updateTranscript]);
+  const handleUserSubmit = () => {
+    if (!userQuery.trim()) return;
+    setFeedCards(prev => [...prev, { id: Date.now().toString(), source: 'user', content: userQuery, timestamp: '10:04' }]);
+    setUserQuery('');
+  };
 
-  const handleToggleListen = () => {
-    if (!isListening) {
-      // Check if we should show consent modal
-      const consentDismissedToday = sessionStorage.getItem('consentDismissedToday');
-      const today = new Date().toDateString();
+  const handlePrint = () => window.print();
 
-      if (consentDismissedToday !== today) {
-        setShowConsentModal(true);
-      } else {
-        startRecording();
-      }
-    } else {
-      // FASE 2: Show stop confirmation modal
-      setShowStopConfirmation(true);
+  // Função para Aplicar Template SOAP
+  const applyTemplate = (templateId: string) => {
+    const template = SOAP_TEMPLATES.find(t => t.id === templateId);
+    if (template) {
+      setDoctorNotes(template.content);
+      setShowTemplates(false);
+      // Feedback visual simples ou toast poderia ser adicionado aqui
     }
   };
 
-  const handleStopRecording = () => {
-    setIsListening(false);
-    setShowStopConfirmation(false);
-  };
+  const getCardStyles = (type?: string) => { /* Mantido */ return { border: 'border-gray-200', bg: 'bg-white', iconBg: 'bg-gray-100', iconColor: 'text-gray-600', icon: Activity }; };
 
-  const handleConsentAccepted = () => {
-    if (dontShowConsentToday) {
-      const today = new Date().toDateString();
-      sessionStorage.setItem('consentDismissedToday', today);
-    }
-    setShowConsentModal(false);
-    startRecording();
-  };
-
-  const startRecording = () => {
-    setIsListening(true);
-    // Log consent obtained event (would send to backend in production)
-  };
-
-  const handleGenerateNote = async () => {
-    if (!currentConsultation) return;
-
-    setIsGeneratingNote(true);
-    setNoteGenerated(false);
-    try {
-      const note = await generateClinicalNote();
-      setDoctorNotes(note);
-      setShowNoteSection(true);
-      setNoteGenerated(true);
-
-      // FASE 3: Auto-switch to clinical note tab
-      setActiveTab('clinical-note');
-
-      setTimeout(() => {
-        setNoteGenerated(false);
-      }, 3000);
-    } catch (error) {
-      console.error('Erro ao gerar nota:', error);
-    } finally {
-      setIsGeneratingNote(false);
-    }
-  };
-
-
-  if (!currentConsultation || !selectedPatient) {
-    return (
-      <AppLayout>
-        <div className="flex flex-col items-center justify-center min-h-[80vh] text-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="space-y-8 max-w-md w-full"
-          >
-            <div className="flex justify-center">
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-purple-600/30 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
-                <div className="relative h-32 w-32 rounded-full bg-gradient-to-br from-white to-gray-50 border-4 border-white shadow-2xl flex items-center justify-center transform group-hover:scale-105 transition-transform duration-300">
-                  <User className="h-12 w-12 text-primary/80" />
-                </div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <h2 className="text-4xl font-bold tracking-tight text-gray-900">
-                {appContext === 'psychology' ? 'Nenhuma Sessão Ativa' : 'Nenhuma Consulta Ativa'}
-              </h2>
-              <p className="text-gray-500 text-lg leading-relaxed">
-                Para iniciar {appContext === 'psychology' ? 'uma sessão' : 'uma consulta'}, selecione um {config.patientLabel.toLowerCase()} na lista de {config.patientLabelPlural.toLowerCase()}.
-              </p>
-            </div>
-            <Button
-              onClick={() => navigate('/patients')}
-              size="lg"
-              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-full px-8 h-12 text-base font-medium"
-            >
-              <User className="mr-2 h-5 w-5" />
-              Ver {config.patientLabelPlural}
-            </Button>
-          </motion.div>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  const suggestedMedications = [
-    {
-      name: 'Paracetamol',
-      concentration: '500 mg',
-      form: 'comprimidos',
-      via: 'VO (via oral)',
-      dosage: '1 comprimido a cada 6 horas',
-      duration: '5 dias',
-      quantity: '20 comprimidos',
-      quantityText: '20 (vinte) comprimidos',
-      indication: 'Para dor e febre',
-      type: 'primary' as const,
-      isControlled: false,
-      controlledType: null
-    },
-    {
-      name: 'Ibuprofeno',
-      concentration: '400 mg',
-      form: 'comprimidos',
-      via: 'VO (via oral)',
-      dosage: '1 comprimido a cada 8 horas',
-      duration: '3 a 5 dias',
-      quantity: '15 comprimidos',
-      quantityText: '15 (quinze) comprimidos',
-      indication: 'Para dor e inflamação',
-      type: 'alternative' as const,
-      isControlled: false,
-      controlledType: null
-    },
-    {
-      name: 'Dipirona',
-      concentration: '500 mg',
-      form: 'comprimidos',
-      via: 'VO (via oral)',
-      dosage: '1 comprimido a cada 6 horas, se necessário',
-      duration: 'Conforme necessário',
-      quantity: '10 comprimidos',
-      quantityText: '10 (dez) comprimidos',
-      indication: 'Para alívio da dor',
-      type: 'alternative' as const,
-      isControlled: false,
-      controlledType: null
-    },
-    {
-      name: 'Loratadina',
-      concentration: '10 mg',
-      form: 'comprimidos',
-      via: 'VO (via oral)',
-      dosage: '1 comprimido por dia',
-      duration: '5 dias',
-      quantity: '5 comprimidos',
-      quantityText: '5 (cinco) comprimidos',
-      indication: 'Para sintomas alérgicos',
-      type: 'optional' as const,
-      isControlled: false,
-      controlledType: null
-    },
-    {
-      name: 'Diazepam',
-      concentration: '5 mg',
-      form: 'comprimidos',
-      via: 'VO (via oral)',
-      dosage: '1 comprimido a noite, conforme necessidade',
-      duration: '7 dias',
-      quantity: '10 comprimidos',
-      quantityText: '10 (dez) comprimidos',
-      indication: 'Ansiedade e espasmos musculares',
-      type: 'controlled' as const,
-      isControlled: true,
-      controlledType: 'benzodiazepínico'
-    }
-  ];
+  if (!selectedPatient) return null;
+  const initials = getPatientInitials(selectedPatient.name);
 
   return (
     <AppLayout>
-      {/* FASE 2: Modal de Confirmação de Parada */}
-      <Dialog open={showStopConfirmation} onOpenChange={setShowStopConfirmation}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Deseja encerrar a gravação?</DialogTitle>
-            <DialogDescription className="text-sm text-gray-600 mt-2">
-              Você ainda poderá gerar a nota clínica após parar a gravação.
-            </DialogDescription>
-          </DialogHeader>
+      {/* CSS GLOBAL PRINT */}
+      <style>{`
+        @media print {
+          @page { margin: 0; size: A4 portrait; }
+          body * { visibility: hidden; }
+          .printable-area, .printable-area * { visibility: visible; }
+          .printable-area { position: fixed; left: 0; top: 0; width: 210mm; min-height: 297mm; background: white; z-index: 9999; padding: 20mm; margin: 0; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 my-4">
-            <p className="text-sm text-gray-700 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              Esta ação interromperá a transcrição em tempo real.
-            </p>
-          </div>
+      <div className="min-h-full flex flex-col font-sans space-y-4 md:space-y-6 pb-4 md:pb-0 print:block">
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setShowStopConfirmation(false)}
-            >
-              Continuar Gravando
-            </Button>
-            <Button
-              onClick={handleStopRecording}
-              className="bg-red-500 hover:bg-red-600 text-white"
-            >
-              Sim, Encerrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 2.2. LGPD: Modal de Consentimento */}
-      <Dialog open={showConsentModal} onOpenChange={setShowConsentModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Obter Consentimento Verbal</DialogTitle>
-            <DialogDescription className="text-sm text-gray-600 mt-2">
-              Antes de iniciar a gravação, certifique-se de obter o consentimento do paciente.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 my-4">
-            <p className="text-sm text-gray-700 font-medium mb-2">
-              📝 Sugestão de script:
-            </p>
-            <p className="text-sm text-gray-900 italic">
-              "{selectedPatient?.name ? selectedPatient.name.split(' ')[0] : 'Paciente'}, vou utilizar uma IA para transcrever nossa conversa e me ajudar nas anotações, tudo seguro e sigiloso. Tudo bem?"
-            </p>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="dontShowToday"
-              checked={dontShowConsentToday}
-              onCheckedChange={(checked) => setDontShowConsentToday(checked as boolean)}
-            />
-            <label
-              htmlFor="dontShowToday"
-              className="text-sm text-gray-600 cursor-pointer select-none"
-            >
-              Não mostrar novamente hoje
-            </label>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setShowConsentModal(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleConsentAccepted}
-              className="bg-[#8C00FF] hover:bg-[#450693] text-white"
-            >
-              Paciente Concordou (Iniciar)
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <div className="flex flex-col h-full bg-gray-50/50">
-        {/* 2.3. LGPD: Indicador de Gravação Pulsante + FASE 2: Audio Visualizer */}
+        {/* --- DRAWER/MODAL DE HISTÓRICO --- */}
         <AnimatePresence>
-          {isListening && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white py-3 px-4 shadow-lg"
-            >
-              <div className="flex items-center justify-center gap-4">
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="h-3 w-3 rounded-full bg-white"
-                />
-                <span className="font-bold text-sm">
-                  🔴 Gravando áudio para transcrição (Seguro)
-                </span>
-                {/* FASE 2: Audio Visualizer Bars */}
-                <div className="flex items-center gap-1 ml-2">
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-1 bg-white rounded-full"
-                      animate={{
-                        height: ["8px", "20px", "8px"],
-                      }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                        delay: i * 0.1,
-                        ease: "easeInOut",
-                      }}
-                    />
-                  ))}
+          {showHistory && (
+            <>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} exit={{ opacity: 0 }} onClick={() => setShowHistory(false)} className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm print:hidden" />
+              <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="fixed right-0 top-0 bottom-0 w-[400px] bg-white shadow-2xl z-50 border-l border-gray-200 flex flex-col print:hidden">
+                <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                  <h2 className="font-bold text-lg flex items-center gap-2"><History className="w-5 h-5 text-gray-600" /> Histórico Clínico</h2>
+                  <Button variant="ghost" size="icon" onClick={() => setShowHistory(false)}><X className="w-5 h-5" /></Button>
                 </div>
-              </div>
-            </motion.div>
+                <ScrollArea className="flex-1 p-5">
+                  <div className="relative border-l-2 border-gray-200 ml-3 space-y-8">
+                    {MOCK_HISTORY.map((visit) => (
+                      <div key={visit.id} className="relative pl-6">
+                        <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-white bg-blue-500 shadow-sm"></div>
+                        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="text-sm font-bold text-gray-900">{visit.date}</p>
+                              <p className="text-xs text-gray-500 font-medium">{visit.type} &bull; {visit.doctor}</p>
+                            </div>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100">{visit.cid}</Badge>
+                          </div>
+                          <p className="text-xs font-bold text-gray-700 mb-1">{visit.diagnosis}</p>
+                          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{visit.notes}</p>
+                          <Button variant="link" className="h-auto p-0 text-[10px] mt-2 text-blue-600 flex items-center gap-1">Ver Detalhes <ArrowRight className="w-3 h-3" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
 
-        {/* Header Fixo com Glassmorphism Refinado */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={cn(
-            "flex-none z-20 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 sticky shadow-sm transition-all",
-            isListening ? "top-10" : "top-0"
-          )}
-        >
-          <div className="w-full py-3">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/patients')}
-                  className="h-10 w-10 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <Avatar className="h-12 w-12 border-2 border-white shadow-md">
-                      <AvatarImage src={getPatientAvatar(selectedPatient?.name || '')} alt={selectedPatient?.name} className="object-cover" />
-                      <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                        {selectedPatient?.name.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-white shadow-sm"></div>
+        {/* --- DRAWER/MODAL DE MODELOS (TEMPLATES) --- */}
+        <AnimatePresence>
+          {showTemplates && (
+            <>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} exit={{ opacity: 0 }} onClick={() => setShowTemplates(false)} className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm print:hidden" />
+              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none print:hidden">
+                <div className="bg-white rounded-2xl shadow-2xl w-[600px] max-h-[80vh] flex flex-col pointer-events-auto border border-gray-200">
+                  <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-purple-50 to-white">
+                    <div>
+                      <h2 className="font-bold text-lg flex items-center gap-2 text-purple-900"><LayoutTemplate className="w-5 h-5 text-purple-600" /> Modelos de Prontuário</h2>
+                      <p className="text-xs text-gray-500">Selecione um modelo para preencher o SOAP automaticamente.</p>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setShowTemplates(false)}><X className="w-5 h-5" /></Button>
                   </div>
-                  <div>
-                    <h1 className="text-xl font-bold text-gray-900 leading-tight tracking-tight">{selectedPatient?.name}</h1>
-                    <div className="flex items-center gap-3 text-sm text-gray-500 mt-0.5">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {selectedPatient?.age ? `${selectedPatient.age} anos` : ''}
-                      </span>
-                      <Separator orientation="vertical" className="h-3 bg-gray-300" />
-                      <span>{selectedPatient?.gender || ''}</span>
+                  <ScrollArea className="flex-1 p-5">
+                    <div className="grid grid-cols-1 gap-3">
+                      {SOAP_TEMPLATES.map((template) => (
+                        <button key={template.id} onClick={() => applyTemplate(template.id)} className="flex items-start gap-4 p-4 rounded-xl border border-gray-200 hover:border-purple-400 hover:bg-purple-50/50 transition-all text-left group">
+                          <div className="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 font-bold">
+                            {template.name.charAt(0)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-center">
+                              <h3 className="font-bold text-gray-800 group-hover:text-purple-700">{template.name}</h3>
+                              <Badge variant="secondary" className="text-[10px]">{template.category}</Badge>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              S: {template.content.subjetivo.substring(0, 50)}...
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* --- HEADER PRINCIPAL --- */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 space-y-4 print:space-y-0">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden font-sans print:hidden">
+            <div className="bg-gradient-to-r from-[#450693] to-[#8C00FF] px-4 py-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="h-8 w-8 rounded-lg hover:bg-white/10 text-white/90"><ChevronLeft className="h-5 w-5" /></Button>
+                  <Avatar className="h-9 w-9 border-2 border-white/40 shrink-0"><AvatarFallback className="bg-white/20 text-white font-bold text-sm backdrop-blur-sm">{initials}</AvatarFallback></Avatar>
+                  <div className="flex-1 min-w-0"><h1 className="text-white font-bold text-base leading-tight truncate">{selectedPatient.name}</h1><p className="text-white/70 text-xs font-medium">{selectedPatient.age} anos</p></div>
+                </div>
+                <div className="flex items-center gap-3 self-end md:self-auto">
+                  <div className={cn("flex items-center gap-2.5 px-4 py-2 rounded-xl transition-all", isListening ? "bg-white shadow-lg" : "bg-white/10 border border-white/20")}>
+                    {isListening && <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span></span>}
+                    <span className={cn("font-mono font-bold text-base tabular-nums tracking-wider", isListening ? "text-[#8C00FF]" : "text-white/80")}>{new Date(elapsedTime * 1000).toISOString().substr(14, 5)}</span>
+                  </div>
+                  <Button onClick={() => setIsListening(!isListening)} className={cn("h-10 px-6 rounded-xl font-bold shadow-lg transition-all active:scale-[0.98]", isListening ? "bg-white text-[#8C00FF]" : "bg-white text-[#8C00FF]")}>{isListening ? <><MicOff className="w-4 h-4 mr-2" /><span className="hidden sm:inline">Pausar</span></> : <><Mic className="w-4 h-4 mr-2" /><span className="hidden sm:inline">Iniciar</span></>}</Button>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 space-y-3">
+              <ScrollArea className="w-full whitespace-nowrap pb-2 md:pb-0">
+                <TabsList className="bg-gray-100 p-1.5 h-11 inline-flex w-auto md:w-full md:grid md:grid-cols-4 gap-1.5 rounded-xl">
+                  {[{ id: 'live', icon: Activity, label: 'Consulta ao Vivo' }, { id: 'soap', icon: FileText, label: 'Prontuário SOAP' }, { id: 'atestado', icon: FileCheck, label: 'Atestado' }, { id: 'receita', icon: Pill, label: 'Receita' }].map(tab => (
+                    <TabsTrigger key={tab.id} value={tab.id} className="data-[state=active]:bg-white data-[state=active]:text-[#8C00FF] data-[state=active]:shadow-sm text-gray-600 font-bold px-4 md:px-0">
+                      <tab.icon className="h-4 w-4 mr-1.5 md:mr-2" /><span>{tab.label}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </ScrollArea>
+            </div>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex-1">
+            <AnimatePresence mode="wait">
+
+              {/* --- TAB LIVE --- */}
+              <TabsContent key="live" value="live" className="flex-1 m-0 outline-none data-[state=inactive]:hidden print:hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 h-full">
+                  <div className="lg:col-span-8 flex flex-col h-[500px] lg:h-full">
+                    <Card className="flex-1 border-0 shadow-lg bg-white rounded-xl md:rounded-2xl relative overflow-hidden flex flex-col">
+                      <CardHeader className="pb-3 md:pb-4 px-3 sm:px-4 md:px-6 pt-3 md:pt-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 md:gap-3"><div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center flex-shrink-0"><Brain className="h-4 w-4 text-purple-600" /></div><div><CardTitle className="text-base md:text-lg">Copiloto IA</CardTitle><CardDescription className="text-[11px] md:text-xs">Insights em tempo real</CardDescription></div></div>
+                          {feedCards.length > 0 && <div className="flex gap-2"><Button size="sm" variant="ghost" onClick={() => setMinimizedCards(new Set(feedCards.map(c => c.id)))} className="text-xs h-7">Minimizar Tudo</Button></div>}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="flex-1 px-3 sm:px-4 md:px-6 pb-3 md:pb-6 relative"><ScrollArea className="h-full"><div className="pb-20">{feedCards.length === 0 && <div className="flex flex-col items-center justify-center h-[300px] text-gray-400 opacity-70"><Brain className="w-8 h-8 text-purple-600 mb-4" /><p className="font-semibold text-gray-600">Aguardando Conversa</p></div>}<div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4"><AnimatePresence mode="popLayout">{feedCards.map((card) => { const style = getCardStyles(card.type); const isMinimized = minimizedCards.has(card.id); if (card.source === 'user') return (<motion.div key={card.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="md:col-span-2"><div className="flex justify-end gap-3 group"><div className="bg-[#450693] text-white rounded-2xl rounded-tr-sm py-3 px-5 shadow-lg max-w-[80%]"><p className="text-sm font-medium">{card.content}</p></div><Avatar className="h-9 w-9 mt-1 border-2 border-white shadow-sm"><AvatarFallback className="bg-gray-200 text-gray-600"><User className="w-5 h-5" /></AvatarFallback></Avatar></div></motion.div>); return (<motion.div key={card.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cn("transition-all", isMinimized ? "md:col-span-2" : "")}><Card className={cn("border shadow-sm relative overflow-hidden transition-all duration-300", style.border, style.bg, isMinimized ? "shadow-none border-dashed bg-white/50" : "shadow-md")}><CardContent className={cn("p-3 relative", isMinimized ? "py-2" : "md:p-4")}><div className="flex items-start gap-3"><div className={cn("p-2 rounded-lg shadow-sm shrink-0 transition-all", style.iconBg, isMinimized ? "p-1.5 bg-transparent shadow-none" : "")}><style.icon className={cn("transition-all", style.iconColor, isMinimized ? "w-4 h-4" : "w-4 h-4")} /></div><div className="flex-1 min-w-0"><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><h4 className={cn("font-bold text-xs uppercase tracking-wide leading-tight", style.iconColor)}>{card.title || 'Insight'}</h4>{isMinimized && <span className="text-[10px] text-gray-400 italic font-medium truncate max-w-[200px]">Oculto</span>}</div><button onClick={() => toggleCardMinimize(card.id)} className="hover:bg-black/5 rounded p-1 transition-colors text-gray-400 hover:text-gray-600">{isMinimized ? <Eye className="w-3 h-3" /> : <ChevronUp className="w-4 h-4" />}</button></div><AnimatePresence>{!isMinimized && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><p className="text-xs text-gray-800 font-medium leading-relaxed mb-2 mt-2">{card.content}</p>{card.tags && <div className="flex flex-wrap gap-1.5 mb-2">{card.tags.map(tag => <Badge key={tag} variant="outline" className={cn("bg-white border-0 shadow-sm text-[9px] px-1.5 py-0.5", style.iconColor)}>{tag}</Badge>)}</div>}</motion.div>)}</AnimatePresence></div></div></CardContent></Card></motion.div>); })}</AnimatePresence><div ref={feedEndRef} className="md:col-span-2" /></div></div></ScrollArea><div className="p-3 md:p-4 bg-white border-t border-gray-100 absolute bottom-0 left-0 right-0 z-10"><div className="relative flex items-center gap-2"><Input value={userQuery} onChange={(e) => setUserQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleUserSubmit()} placeholder="Pergunte ao Copiloto..." className="pl-4 h-11 rounded-xl shadow-sm bg-white" /><Button size="icon" onClick={handleUserSubmit} disabled={!userQuery.trim()} className="h-11 w-11 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 shadow-md text-white shrink-0"><Send className="w-4 h-4" /></Button></div></div></CardContent></Card>
+                  </div>
+                  <div className="lg:col-span-4 h-[300px] lg:h-full">
+                    <Card className="h-full border-0 shadow-lg overflow-hidden flex flex-col bg-white rounded-xl md:rounded-2xl"><CardHeader className="pb-3 md:pb-4 px-3 sm:px-4 md:px-6 pt-3 md:pt-6"><div className="flex items-center justify-between"><div className="flex items-center gap-2 md:gap-3"><div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0"><Activity className="h-4 w-4 text-gray-600" /></div><CardTitle className="text-base md:text-lg">Transcrição</CardTitle></div><Badge variant="secondary" className="bg-green-100 text-green-700">Ao Vivo</Badge></div></CardHeader><CardContent className="flex-1 px-3 sm:px-4 md:px-6 pb-3 md:pb-6"><ScrollArea className="h-full"><div className="space-y-4">{currentConsultation?.transcript ? (currentConsultation.transcript.split('\n').map((line, idx) => { const isDoctor = line.startsWith('Médico:'); return (<div key={idx} className="relative pl-4 border-l-2 border-gray-200 pb-1"><div className={cn("absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white", isDoctor ? "bg-[#8C00FF]" : "bg-gray-400")} /><p className={cn("text-[10px] font-bold uppercase mb-0.5", isDoctor ? "text-[#8C00FF]" : "text-gray-500")}>{line.split(':')[0]}</p><p className="text-sm text-gray-700 leading-snug">{line.split(':').slice(1).join(':').trim()}</p></div>) })) : (<div className="flex flex-col items-center justify-center h-[200px] text-gray-300"><Activity className="w-8 h-8 mb-2 opacity-20" /><p className="text-xs">Aguardando áudio...</p></div>)}<div ref={transcriptEndRef} /></div></ScrollArea></CardContent></Card>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* --- TAB SOAP (PROFESSIONAL CLEAN DESIGN) --- */}
+              <TabsContent key="soap" value="soap" className="flex-1 m-0 data-[state=inactive]:hidden print:hidden">
+                <div className="flex flex-col h-full space-y-4">
+                  {/* Clean Toolbar with Actions */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white px-4 py-3 rounded-xl border border-gray-200 shadow-sm sticky top-0 z-20">
+                    <div className="flex items-center gap-4 w-full sm:w-auto overflow-x-auto">
+                      <Badge variant="secondary" className="bg-purple-50 text-purple-700 hover:bg-purple-100 cursor-pointer border-purple-100"><Sparkles className="w-3 h-3 mr-1" /> IA Ativa</Badge>
+                      <Separator orientation="vertical" className="h-6" />
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setShowHistory(true)} className="text-gray-600 text-xs h-7 hover:bg-blue-50 hover:text-blue-700 gap-1"><History className="w-3 h-3" /> Histórico</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setShowTemplates(true)} className="text-gray-600 text-xs h-7 hover:bg-purple-50 hover:text-purple-700 gap-1"><LayoutTemplate className="w-3 h-3" /> Modelos</Button>
+                      </div>
+                    </div>
+                    <Button className="w-full sm:w-auto h-9 bg-[#8C00FF] hover:bg-[#7a00df] text-white font-medium text-xs shadow-md transition-all active:scale-95">
+                      <Save className="w-3.5 h-3.5 mr-2" /> Salvar Prontuário
+                    </Button>
+                  </div>
+
+                  {/* Editor Area */}
+                  <ScrollArea className="flex-1 h-[calc(100vh-280px)] pr-2">
+                    <div className="space-y-5 pb-10 max-w-5xl mx-auto">
+                      {[
+                        { id: 'subjetivo', label: 'Subjetivo (Anamnese)', icon: User, macros: ['Nega Alergias', 'Dor Localizada', 'Sem febre'] },
+                        { id: 'objetivo', label: 'Objetivo (Exame Físico)', icon: Stethoscope, macros: ['BEG', 'Corado', 'Hidratado', 'Ausculta Limpa'] },
+                        { id: 'avaliacao', label: 'Avaliação (Diagnóstico)', icon: Activity, macros: [] },
+                        { id: 'plano', label: 'Plano (Conduta)', icon: FileCheck, macros: ['Retorno SN', 'Sintomáticos', 'Repouso'] }
+                      ].map((section) => (
+                        <div key={section.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden group focus-within:ring-2 focus-within:ring-[#8C00FF]/20 transition-all">
+                          <div className="px-4 py-2 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 bg-white border border-gray-200 rounded-md shadow-sm"><section.icon className="w-3.5 h-3.5 text-gray-500" /></div>
+                              <span className="font-bold text-sm text-gray-700">{section.label}</span>
+                            </div>
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {section.macros.map(m => (
+                                <button key={m} onClick={() => setDoctorNotes(prev => ({ ...prev, [section.id]: (prev as any)[section.id] + (prev as any)[section.id] ? `. ${m}` : m }))} className="text-[10px] bg-white border border-gray-200 px-2 py-1 rounded-full hover:border-[#8C00FF] hover:text-[#8C00FF] transition-colors font-medium shadow-sm">
+                                  + {m}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <Textarea
+                            className="w-full min-h-[100px] border-0 focus-visible:ring-0 resize-none p-4 text-sm leading-relaxed text-gray-800 bg-white placeholder:text-gray-300 font-medium"
+                            placeholder={`Descreva o ${section.label.toLowerCase()}...`}
+                            value={(doctorNotes as any)?.[section.id] || ''}
+                            onChange={(e) => setDoctorNotes({ ...doctorNotes, [section.id]: e.target.value })}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </TabsContent>
+
+              {/* --- TAB ATESTADO --- */}
+              <TabsContent key="atestado" value="atestado" className="flex-1 m-0 data-[state=inactive]:hidden print:block h-[calc(100vh-220px)] overflow-hidden">
+                <div className="flex h-full gap-6 p-2 relative">
+
+                  {/* PAINEL CONFIG */}
+                  <Card className="w-80 h-full border-gray-200 shadow-xl bg-white flex flex-col print:hidden">
+                    <CardHeader className="pb-3 bg-gradient-to-r from-emerald-50 to-white border-b border-emerald-100">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2 text-emerald-900">
+                        <FileSignature className="w-4 h-4 text-emerald-600" /> Configuração
+                      </CardTitle>
+                      <CardDescription className="text-[10px]">Em conformidade com CFM 1.658/02</CardDescription>
+                    </CardHeader>
+
+                    <ScrollArea className="flex-1">
+                      <CardContent className="space-y-6 pt-6">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">Tipo de Documento</Label>
+                          <div className="flex flex-col gap-2">
+                            {[{ id: 'afastamento', label: 'Atestado Médico', sub: 'Abona faltas (Doença)', icon: Activity }, { id: 'comparecimento', label: 'Declaração', sub: 'Justifica horas (Exames)', icon: Clock }, { id: 'acompanhamento', label: 'Acompanhante', sub: 'Lei 13.257/16 (Filhos)', icon: Baby }].map(t => (
+                              <button key={t.id} onClick={() => setAtestadoData({ ...atestadoData, tipo: t.id as any })} className={cn("flex items-start gap-3 p-3 rounded-xl border text-left transition-all hover:shadow-md", atestadoData.tipo === t.id ? "bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500" : "bg-white border-gray-200 hover:border-emerald-300")}>
+                                <div className={cn("mt-0.5 p-1.5 rounded-full", atestadoData.tipo === t.id ? "bg-emerald-200 text-emerald-800" : "bg-gray-100 text-gray-500")}><t.icon className="w-4 h-4" /></div>
+                                <div><p className={cn("text-xs font-bold", atestadoData.tipo === t.id ? "text-emerald-900" : "text-gray-700")}>{t.label}</p><p className="text-[10px] text-gray-500 leading-tight">{t.sub}</p></div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <AnimatePresence mode="wait">
+                          {atestadoData.tipo === 'afastamento' && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-4 overflow-hidden">
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-bold text-gray-500 uppercase">Qtd. Dias</Label>
+                                <div className="grid grid-cols-5 gap-1.5">
+                                  {['1', '2', '3', '5', '7', '10', '14', '15', '21', '30'].map(d => (
+                                    <button key={d} onClick={() => setAtestadoData({ ...atestadoData, dias: d })} className={cn("h-8 text-xs font-bold rounded border transition-all", atestadoData.dias === d ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 hover:border-emerald-500")}>{d}</button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="bg-amber-50 p-3 rounded-lg border border-amber-100 flex flex-col gap-2">
+                                <div className="flex items-center justify-between"><span className="text-xs font-bold text-amber-900 flex items-center gap-1"><Lock className="w-3 h-3" /> Sigilo CID</span><Switch checked={atestadoData.exibirCid} onCheckedChange={(c) => setAtestadoData({ ...atestadoData, exibirCid: c })} className="data-[state=checked]:bg-amber-600" /></div>
+                                {atestadoData.exibirCid && (<Input value={atestadoData.cid} onChange={(e) => setAtestadoData({ ...atestadoData, cid: e.target.value })} className="h-7 text-xs bg-white border-amber-200" />)}
+                              </div>
+                            </motion.div>
+                          )}
+                          {(atestadoData.tipo === 'comparecimento' || atestadoData.tipo === 'acompanhamento') && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-4 overflow-hidden">
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-bold text-gray-500 uppercase">Período</Label>
+                                <div className="flex bg-gray-100 p-1 rounded-lg">
+                                  {['Manhã', 'Tarde', 'Integral'].map(p => (
+                                    <button key={p} onClick={() => setAtestadoData({ ...atestadoData, periodo: p as any })} className={cn("flex-1 py-1.5 text-xs font-bold rounded-md transition-all", atestadoData.periodo === p ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500")}>{p}</button>
+                                  ))}
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </CardContent>
+                    </ScrollArea>
+                    <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl space-y-2">
+                      <Button onClick={handlePrint} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50 rounded-lg h-11 font-bold text-xs flex items-center justify-center gap-2"><Printer className="w-4 h-4" /> Imprimir Documento</Button>
+                      <div className="flex items-center justify-center gap-1.5 opacity-60"><ShieldCheck className="w-3 h-3 text-emerald-700" /><span className="text-[9px] font-bold text-gray-500">Assinatura Digital ICP-Brasil</span></div>
+                    </div>
+                  </Card>
+
+                  {/* VISUALIZAÇÃO A4 */}
+                  <div className="flex-1 bg-gray-200/50 rounded-r-xl border-l border-gray-300 flex justify-center overflow-y-auto p-8 print:p-0 print:absolute print:top-0 print:left-0 print:w-full print:bg-white print:border-none">
+                    <div className="printable-area w-[210mm] min-h-[297mm] bg-white shadow-2xl relative flex flex-col p-[20mm] text-gray-900 transition-all print:shadow-none print:m-0">
+                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] z-0"><div className="w-[150mm] h-[150mm] border-[20px] border-gray-900 rounded-full flex items-center justify-center"><Activity className="w-64 h-64 text-gray-900" /></div></div>
+
+                      <header className="border-b-4 border-gray-800 pb-6 mb-10 z-10 flex justify-between items-start">
+                        <div><h2 className="font-serif text-3xl font-bold text-gray-900 tracking-tight">Dr. {selectedPatient.doctorName || 'Médico Exemplo'}</h2><div className="flex gap-3 mt-2"><div className="bg-gray-100 px-2 py-0.5 rounded border border-gray-200 text-[10px] font-bold uppercase tracking-wide text-gray-600">CRM-SP 123.456</div><div className="bg-gray-100 px-2 py-0.5 rounded border border-gray-200 text-[10px] font-bold uppercase tracking-wide text-gray-600">RQE 45.092</div></div></div>
+                        <div className="text-right"><h2 className="text-sm font-bold uppercase tracking-widest text-emerald-900">Medicina de Família</h2><p className="text-[10px] text-gray-500 mt-1">Rua da Saúde, 1000 - Sala 42<br />São Paulo - SP</p></div>
+                      </header>
+
+                      <div className="text-center mb-12 z-10">
+                        <h2 className="text-4xl font-black uppercase tracking-[0.2em] text-gray-900 inline-block border-b-2 border-emerald-500 pb-2">{atestadoData.tipo === 'afastamento' ? 'Atestado Médico' : atestadoData.tipo === 'comparecimento' ? 'Declaração' : 'Atestado'}</h2>
+                        <p className="text-[10px] text-gray-400 mt-2 font-mono uppercase tracking-widest">Documento Médico Legal</p>
+                      </div>
+
+                      <div className="flex-1 z-10 px-4 group relative">
+                        <div className="absolute -left-8 top-0 opacity-0 group-hover:opacity-100 transition-opacity print:hidden"><div className="bg-emerald-50 text-emerald-700 p-2 rounded-lg shadow-sm"><Edit3 className="w-4 h-4" /></div></div>
+                        <Textarea className="w-full h-full min-h-[400px] border-0 focus-visible:ring-0 p-0 text-xl leading-[2.5] text-justify font-serif resize-none bg-transparent selection:bg-emerald-100 text-gray-800" value={atestadoData.textoLivre} onChange={(e) => setAtestadoData({ ...atestadoData, textoLivre: e.target.value })} />
+                        {atestadoData.exibirCid && atestadoData.tipo === 'afastamento' && (<div className="mt-8 flex justify-center"><div className="border-2 border-gray-900 px-8 py-3 bg-gray-50 print:bg-white relative"><span className="absolute -top-2.5 left-4 bg-white px-2 text-[10px] font-bold uppercase">Diagnóstico</span><p className="font-mono text-xl font-bold">CID-10: {atestadoData.cid}</p></div></div>)}
+                      </div>
+
+                      <footer className="mt-auto pt-10 border-t border-gray-300 z-10 flex items-end justify-between">
+                        <div className="text-center"><div className="border border-gray-900 p-1 bg-white inline-block mb-2"><QrCode className="w-24 h-24 text-gray-900" /></div><p className="text-[8px] font-mono text-gray-500 uppercase">Autenticidade Verificável em:<br /><span className="font-bold">VALIDADOR.ITI.GOV.BR</span></p></div>
+                        <div className="text-right"><div className="relative inline-block px-8 pb-2"><div className="absolute -top-10 -right-4 w-32 h-32 border-4 border-emerald-900/10 rounded-full flex items-center justify-center rotate-[-15deg] pointer-events-none"><span className="text-[10px] font-bold text-emerald-900/20 uppercase text-center leading-tight">Assinado<br />Digitalmente<br />ICP-Brasil</span></div><p className="font-script text-5xl text-blue-900 mb-2 rotate-[-2deg]">Dr. Medico Exemplo</p><div className="h-0.5 w-full bg-gray-900 mb-1"></div><p className="text-xs font-bold uppercase tracking-widest text-gray-900">Assinado Eletronicamente</p><p className="text-[10px] text-gray-500 mt-0.5">{atestadoData.local}, {new Date().toLocaleDateString()}</p></div></div>
+                      </footer>
                     </div>
                   </div>
                 </div>
-              </div>
+              </TabsContent>
 
-              <div className="flex items-center gap-3">
-                {!isListening && currentConsultation.transcript && !showNoteSection && (
-                  <motion.div
-                    initial={{ scale: 1 }}
-                    animate={noteGenerated ? { scale: [1, 1.05, 1] } : { scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <Button
-                      onClick={handleGenerateNote}
-                      disabled={isGeneratingNote}
-                      size="sm"
-                      className={cn(
-                        "h-10 px-5 text-white shadow-md transition-all font-medium rounded-full",
-                        noteGenerated
-                          ? 'bg-green-600 hover:bg-green-700 ring-2 ring-green-200'
-                          : 'bg-amber-500 hover:bg-amber-600 text-white ring-2 ring-amber-200'
-                      )}
-                    >
-                      {isGeneratingNote ? (
-                        <>
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="mr-2"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </motion.div>
-                          Gerando Nota...
-                        </>
-                      ) : noteGenerated ? (
-                        <>
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Nota Gerada
-                        </>
-                      ) : (
-                        <>
-                          <FileText className="mr-2 h-4 w-4" />
-                          Gerar Nota Clínica
-                        </>
-                      )}
-                    </Button>
-                  </motion.div>
-                )}
-
-                {/* FASE 2: Quick Notes Button */}
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-10 px-4 shadow-sm border-gray-300 hover:border-primary hover:text-primary rounded-full"
-                    >
-                      <StickyNote className="mr-2 h-4 w-4" />
-                      Notas Rápidas
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-bold">Notas Rápidas</DialogTitle>
-                      <DialogDescription className="text-sm text-gray-600 mt-2">
-                        Anote informações importantes sem interferir na IA
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="my-4">
-                      <textarea
-                        value={quickNotes}
-                        onChange={(e) => setQuickNotes(e.target.value)}
-                        placeholder="Ex: PA 120/80, Peso 70kg, Altura 1.75m..."
-                        className="w-full h-40 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                      />
+              {/* --- TAB RECEITA --- */}
+              <TabsContent key="receita" value="receita" className="flex-1 m-0 data-[state=inactive]:hidden print:block h-[calc(100vh-220px)] overflow-hidden">
+                <div className="max-w-6xl mx-auto h-full flex flex-col bg-white rounded-t-xl shadow-2xl border border-gray-200 overflow-hidden relative print:shadow-none print:border-0 print:h-auto print:overflow-visible">
+                  <div className="bg-[#00BFA5] h-14 px-6 flex items-center justify-between shrink-0 z-20 shadow-md print:hidden">
+                    <div className="flex items-center gap-3"><div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center font-bold text-white text-lg">M</div><span className="font-bold text-white tracking-wide">Memed Prescrição</span></div>
+                    <div className="flex items-center gap-4"><Badge variant="outline" className="text-white border-white/30 bg-white/10 text-xs hidden sm:flex gap-1"><ShieldCheck className="w-3 h-3" /> Ambiente Seguro</Badge><Button onClick={handlePrint} size="sm" className="h-8 bg-white text-[#00BFA5] hover:bg-teal-50 font-bold text-xs gap-2 shadow-sm border-0"><Printer className="w-3.5 h-3.5" /> Imprimir</Button></div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-8 relative printable-area print:bg-white print:p-0 print:overflow-visible">
+                    <div className="relative z-10 mb-8 max-w-3xl mx-auto print:hidden">
+                      <div className="relative group shadow-lg rounded-xl">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Search className="h-5 w-5 text-gray-400 group-focus-within:text-[#00BFA5] transition-colors" /></div>
+                        <input type="text" placeholder="Buscar medicamento (ex: Dipirona, Amoxicilina)..." className="block w-full h-14 pl-12 pr-12 rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-[#00BFA5] bg-white text-gray-900 placeholder:text-gray-400 font-medium text-base shadow-sm transition-all" value={memedSearch} onChange={(e) => { setMemedSearch(e.target.value); setShowSuggestions(e.target.value.length > 0); }} />
+                        {memedSearch && <button onClick={() => { setMemedSearch(''); setShowSuggestions(false); }} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>}
+                      </div>
+                      <AnimatePresence>{showSuggestions && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-30 max-h-[400px] overflow-y-auto"><div className="px-4 py-2 bg-gray-50/50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider sticky top-0 backdrop-blur-sm">Medicamentos Encontrados</div>{MOCK_DRUG_DB.filter(d => d.name.toLowerCase().includes(memedSearch.toLowerCase())).map((drug, idx) => (<button key={idx} onClick={() => { setPrescricaoMemed([...prescricaoMemed, { id: Date.now(), ...drug, posologia: 'Uso conforme orientação médica.', quantidade: '1 cx' }]); setMemedSearch(''); setShowSuggestions(false); }} className="w-full text-left px-4 py-3.5 hover:bg-teal-50 flex items-center justify-between group border-b border-gray-50 last:border-0 transition-colors"><div><div className="flex items-center gap-2"><p className="font-bold text-gray-800 group-hover:text-[#00BFA5] text-sm">{drug.name}</p>{drug.alert && <Badge variant="destructive" className="h-4 text-[9px] px-1">Alergia</Badge>}</div><p className="text-xs text-gray-400 mt-0.5 flex gap-2"><span>{drug.lab}</span><span className="w-1 h-1 rounded-full bg-gray-300 self-center" /><span>{drug.group}</span></p></div><Plus className="w-5 h-5 text-gray-300 group-hover:text-[#00BFA5] transition-colors" /></button>))}</motion.div>)}</AnimatePresence>
                     </div>
-                    <DialogFooter>
-                      <Button variant="outline">Limpar</Button>
-                      <Button onClick={() => setQuickNotes(quickNotes)} className="bg-primary">
-                        Salvar
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                    <div className="hidden print:block border-b-2 border-gray-900 pb-6 mb-8"><div className="flex justify-between items-end"><div><h1 className="text-3xl font-bold uppercase tracking-wide text-gray-900">Receituário Médico</h1><p className="text-sm mt-2 text-gray-600">Dr. {selectedPatient.doctorName || 'Médico Exemplo'} - CRM 12345</p></div><div className="text-right text-xs text-gray-500"><p>Emissão: {new Date().toLocaleDateString()}</p><p>Controle Especial</p></div></div></div>
+                    <div className="space-y-4 max-w-4xl mx-auto print:max-w-none print:space-y-8">{prescricaoMemed.length === 0 ? (<div className="text-center py-20 border-2 border-dashed border-gray-200 rounded-2xl print:hidden bg-white/50"><div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"><Pill className="w-10 h-10 text-gray-300" /></div><h3 className="text-gray-900 font-bold text-base">Sua prescrição está vazia</h3><p className="text-gray-500 text-sm mt-1">Utilize a busca acima para adicionar medicamentos.</p></div>) : (<AnimatePresence>{prescricaoMemed.map((item, idx) => (<motion.div layout key={item.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, height: 0 }} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 group hover:border-[#00BFA5] transition-all print:shadow-none print:border-0 print:border-b-2 print:border-gray-100 print:rounded-none print:p-0 print:pb-6 print:break-inside-avoid"><div className="flex items-start justify-between mb-4"><div className="flex items-center gap-4"><span className="w-8 h-8 rounded-lg bg-[#00BFA5]/10 text-[#00BFA5] flex items-center justify-center text-sm font-bold print:bg-gray-900 print:text-white print:rounded-full print:w-6 print:h-6 print:text-xs">{idx + 1}</span><div><h4 className="font-bold text-gray-900 text-xl tracking-tight">{item.name}</h4><p className="text-xs text-gray-400 font-medium mt-0.5 print:hidden">{item.lab} &bull; {item.type}</p></div></div><button onClick={() => setPrescricaoMemed(prescricaoMemed.filter(i => i.id !== item.id))} className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all print:hidden"><Trash2 className="w-5 h-5" /></button></div>{item.alert && (<div className="mb-4 bg-red-50 border border-red-100 rounded-lg p-3 flex items-start gap-3 print:border-black print:bg-white print:border-dashed"><AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" /><div><p className="text-sm font-bold text-red-800">Alerta de Segurança</p><p className="text-xs text-red-700">{item.msg || 'Interação medicamentosa detectada.'}</p></div></div>)}<div className="pl-12 grid grid-cols-1 md:grid-cols-12 gap-6 print:pl-10"><div className="md:col-span-8"><label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block print:hidden">Posologia / Instruções</label><textarea rows={2} value={item.posologia} onChange={(e) => { const l = [...prescricaoMemed]; l.find(i => i.id === item.id).posologia = e.target.value; setPrescricaoMemed(l); }} className="w-full text-base border border-gray-200 rounded-lg p-3 focus:border-[#00BFA5] focus:ring-1 focus:ring-[#00BFA5] focus:outline-none text-gray-700 bg-gray-50/50 print:border-none print:p-0 print:bg-transparent print:resize-none print:font-medium" /></div><div className="md:col-span-4"><label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block print:hidden">Quantidade Total</label><input type="text" value={item.quantidade} onChange={(e) => { const l = [...prescricaoMemed]; l.find(i => i.id === item.id).quantidade = e.target.value; setPrescricaoMemed(l); }} className="w-full text-base border border-gray-200 rounded-lg p-3 focus:border-[#00BFA5] focus:ring-1 focus:ring-[#00BFA5] focus:outline-none text-gray-700 bg-gray-50/50 print:border-none print:p-0 print:bg-transparent print:text-right print:font-bold" /></div></div></motion.div>))}</AnimatePresence>)}</div>
+                    <div className="hidden print:flex mt-20 pt-8 border-t border-gray-300 justify-between items-end"><div className="text-xs text-gray-500"><p>Paciente: {selectedPatient.name}</p><p>Prescrição Eletrônica</p></div><div className="text-center"><div className="h-0.5 w-64 bg-gray-900 mb-2"></div><p className="font-bold uppercase text-sm">Assinatura e Carimbo</p></div></div>
+                  </div>
+                </div>
+              </TabsContent>
 
-                <Button
-                  onClick={handleToggleListen}
-                  size="sm"
-                  className={cn(
-                    "h-10 px-6 shadow-md transition-all font-medium rounded-full",
-                    isListening
-                      ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse ring-4 ring-red-100'
-                      : 'bg-primary hover:bg-primary/90 text-white ring-4 ring-primary/10'
-                  )}
-                >
-                  {isListening ? (
-                    <>
-                      <MicOff className="mr-2 h-4 w-4" />
-                      Parar Gravação
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="mr-2 h-4 w-4" />
-                      Iniciar Consulta
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Conteúdo Principal com Tabs Modernas */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="h-full w-full py-6">
-            <Tabs
-              defaultValue="ai"
-              value={activeTab}
-              onValueChange={(val) => setActiveTab(val as any)}
-              className="h-full flex flex-col gap-6"
-            >
-              <div className="flex-none">
-                <TabsList className="w-full justify-start h-14 p-1.5 bg-white/50 backdrop-blur-sm border border-gray-200/60 rounded-2xl shadow-sm overflow-x-auto">
-                  {[
-                    { id: 'ai', label: 'Copilot IA', icon: Brain, description: 'Assistente em tempo real' },
-                    ...(appContext === 'psychology' ? [
-                      { id: 'summary', label: 'Resumo', icon: Clock, description: 'Pontos chave' },
-                    ] : []),
-                    { id: 'diagnosis', label: appContext === 'psychology' ? 'Hipóteses' : 'Diagnóstico', icon: Lightbulb, description: 'Análise clínica' },
-                    ...(appContext === 'medical' ? [
-                      { id: 'medication', label: 'Medicação', icon: Pill, description: 'Sugestões' },
-                      { id: 'prescription', label: 'Receita', icon: FileCheck, description: 'Documentos' },
-                    ] : []),
-                    ...(showNoteSection ? [
-                      { id: 'clinical-note', label: 'Nota Clínica', icon: FileText, description: 'SOAP segmentado' },
-                    ] : []),
-                    ...(appContext === 'psychology' ? [
-                      { id: 'themes', label: 'Temas', icon: Target, description: 'Focos terapêuticos' },
-                      { id: 'interventions', label: 'Intervenções', icon: Heart, description: 'Plano de ação' },
-                    ] : []),
-                  ].map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                      <TabsTrigger
-                        key={tab.id}
-                        value={tab.id}
-                        className={cn(
-                          "flex-1 min-w-[140px] h-full rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-md border border-transparent data-[state=active]:border-gray-100",
-                          !isActive && "hover:bg-white/40 hover:text-gray-700"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "p-2 rounded-lg transition-colors",
-                            isActive ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-500"
-                          )}>
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <div className="text-left">
-                            <div className="font-semibold leading-none mb-1">{tab.label}</div>
-                            <div className="text-[10px] text-gray-400 font-normal hidden sm:block">{tab.description}</div>
-                          </div>
-                        </div>
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
-              </div>
-
-              <div className="flex-1 overflow-hidden relative rounded-3xl border border-gray-200 bg-white shadow-xl shadow-gray-100/50">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeTab}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.25, ease: "easeOut" }}
-                    className="h-full"
-                  >
-                    <TabsContent value="ai" className="h-full m-0 p-0 border-0">
-                      <AIChatPanel
-                        transcript={currentConsultation.transcript || ''}
-                        patientData={selectedPatient}
-                        isActive={isListening}
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="medication" className="h-full m-0 overflow-auto">
-                      <ScrollArea className="h-full">
-                        <div className="p-6 sm:p-8">
-                          <div className="flex items-center gap-4 mb-8">
-                            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center shadow-lg shadow-pink-500/20 ring-4 ring-pink-50">
-                              <Pill className="h-7 w-7 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-2xl text-gray-900">Medicação Sugerida</h3>
-                              <p className="text-gray-500">Prescrições baseadas nas hipóteses diagnósticas e diretrizes atuais.</p>
-                            </div>
-                          </div>
-
-                          <div className="grid gap-4">
-                            {suggestedMedications.map((med, idx) => (
-                              <motion.div
-                                key={idx}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.1 }}
-                              >
-                                <MedicationCard med={med} idx={idx} />
-                              </motion.div>
-                            ))}
-
-                            <Card className="border-0 bg-gradient-to-br from-blue-50 to-indigo-50/50 shadow-sm mt-6 overflow-hidden">
-                              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                              <CardContent className="p-6">
-                                <div className="flex items-start gap-4">
-                                  <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
-                                    <AlertTriangle className="h-5 w-5" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-bold text-gray-900 mb-3 text-lg">Orientações Importantes</h4>
-                                    <ul className="grid sm:grid-cols-2 gap-3">
-                                      <li className="flex items-center gap-2 text-sm text-gray-700 bg-white/60 p-2 rounded-lg">
-                                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                                        <span>Verificar alergias medicamentosas</span>
-                                      </li>
-                                      <li className="flex items-center gap-2 text-sm text-gray-700 bg-white/60 p-2 rounded-lg">
-                                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                                        <span>Orientar hidratação (2-3L/dia)</span>
-                                      </li>
-                                      <li className="flex items-center gap-2 text-sm text-gray-700 bg-white/60 p-2 rounded-lg">
-                                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                                        <span>Repouso relativo</span>
-                                      </li>
-                                      <li className="flex items-center gap-2 text-sm text-gray-700 bg-white/60 p-2 rounded-lg">
-                                        <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-                                        <span>Retornar se piora em 3-5 dias</span>
-                                      </li>
-                                    </ul>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        </div>
-                      </ScrollArea>
-                    </TabsContent>
-
-                    <TabsContent value="diagnosis" className="h-full m-0 overflow-auto">
-                      <ScrollArea className="h-full">
-                        <div className="p-6 sm:p-8">
-                          {appContext === 'medical' ? (
-                            <>
-                              <div className="flex items-center gap-4 mb-8">
-                                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20 ring-4 ring-amber-50">
-                                  <Lightbulb className="h-7 w-7 text-white" />
-                                </div>
-                                <div>
-                                  <h3 className="font-bold text-2xl text-gray-900">Hipóteses Diagnósticas</h3>
-                                  <p className="text-gray-500">Análise diferencial baseada em evidências clínicas.</p>
-                                </div>
-                              </div>
-
-                              <div className="space-y-6">
-                                <div className="flex items-center gap-2 mb-4">
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-3 py-1">
-                                    <Target className="h-3 w-3 mr-1" />
-                                    Diagnóstico Principal
-                                  </Badge>
-                                </div>
-
-                                <Card className="border-0 ring-1 ring-green-100 bg-gradient-to-br from-green-50/50 to-emerald-50/30 shadow-lg hover:shadow-xl transition-all duration-300">
-                                  <CardContent className="p-6">
-                                    <div className="flex items-start justify-between mb-6">
-                                      <div className="flex items-center gap-4">
-                                        <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/20 text-white">
-                                          <Stethoscope className="h-8 w-8" />
-                                        </div>
-                                        <div>
-                                          <h5 className="font-bold text-2xl text-gray-900">Faringite Viral Aguda</h5>
-                                          <div className="flex items-center gap-2 mt-2">
-                                            <Badge className="bg-green-500 hover:bg-green-600 text-white border-0 shadow-sm">Alta Probabilidade</Badge>
-                                            <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50">Baixa Gravidade</Badge>
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div className="text-right">
-                                        <div className="text-3xl font-bold text-green-600">92%</div>
-                                        <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Confiança</div>
-                                      </div>
-                                    </div>
-
-                                    <Separator className="my-6 bg-green-100" />
-
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                      <div className="bg-white rounded-xl p-5 border border-green-100 shadow-sm">
-                                        <h6 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                          <Activity className="h-4 w-4 text-green-600" />
-                                          Evidências Clínicas
-                                        </h6>
-                                        <ul className="space-y-2">
-                                          <li className="flex items-center gap-2 text-sm text-gray-600">
-                                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                            <span>Hiperemia e edema faríngeo</span>
-                                          </li>
-                                          <li className="flex items-center gap-2 text-sm text-gray-600">
-                                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                            <span>Ausência de exsudato purulento</span>
-                                          </li>
-                                          <li className="flex items-center gap-2 text-sm text-gray-600">
-                                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                            <span>Febre baixa associada</span>
-                                          </li>
-                                        </ul>
-                                      </div>
-
-                                      <div className="bg-white rounded-xl p-5 border border-green-100 shadow-sm">
-                                        <h6 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                          <Brain className="h-4 w-4 text-green-600" />
-                                          Raciocínio Clínico
-                                        </h6>
-                                        <p className="text-sm text-gray-600 leading-relaxed">
-                                          O quadro clínico é consistente com etiologia viral. A ausência de placas e a presença de sintomas sistêmicos leves afastam a hipótese bacteriana primária.
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              </div>
-                            </>
-                          ) : (
-                            <PsychologyClinicalHypothesis patientName={selectedPatient?.name || ''} />
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </TabsContent>
-
-                    {/* FASE 3: Magic Copy Section */}
-                    <TabsContent value="clinical-note" className="h-full m-0 overflow-auto">
-                      <ScrollArea className="h-full">
-                        <div className="p-6 sm:p-8">
-                          <MagicCopySection clinicalNote={currentConsultation.doctorNotes || ''} />
-                        </div>
-                      </ScrollArea>
-                    </TabsContent>
-
-                    <TabsContent value="prescription" className="h-full m-0 overflow-auto">
-                      <ScrollArea className="h-full">
-                        <div className="p-6 sm:p-8">
-                          <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-4">
-                              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center shadow-lg shadow-violet-600/20 ring-4 ring-violet-50">
-                                <FileCheck className="h-7 w-7 text-white" />
-                              </div>
-                              <div>
-                                <h3 className="font-bold text-2xl text-gray-900">Receita Médica</h3>
-                                <p className="text-gray-500">Geração, assinatura digital e envio.</p>
-                              </div>
-                            </div>
-                            {!prescriptionGenerated && (
-                              <Button
-                                onClick={() => setPrescriptionGenerated(true)}
-                                className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/20 rounded-full px-6 h-11"
-                              >
-                                <FileCheck className="mr-2 h-4 w-4" />
-                                Gerar Receita Digital
-                              </Button>
-                            )}
-                          </div>
-
-                          {!prescriptionGenerated ? (
-                            <Card className="border-2 border-dashed border-gray-200 bg-gray-50/50">
-                              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                                <div className="h-20 w-20 rounded-full bg-white shadow-sm flex items-center justify-center mb-6 ring-8 ring-gray-100">
-                                  <FileCheck className="h-10 w-10 text-gray-300" />
-                                </div>
-                                <h4 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma receita gerada</h4>
-                                <p className="text-gray-500 max-w-md mb-8 leading-relaxed">
-                                  O sistema pode gerar uma receita automaticamente com base nas medicações sugeridas e aprovadas por você.
-                                </p>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => setPrescriptionGenerated(true)}
-                                  className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-300"
-                                >
-                                  Gerar Agora
-                                </Button>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <Card className="border-0 shadow-2xl bg-white overflow-hidden max-w-3xl mx-auto ring-1 ring-gray-200">
-                                <div className="h-3 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600"></div>
-                                <CardContent className="p-12">
-                                  <div className="text-center py-12">
-                                    <div className="h-16 w-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                      <CheckCircle2 className="h-8 w-8" />
-                                    </div>
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Receita Gerada com Sucesso</h3>
-                                    <p className="text-gray-500 mb-8">A receita foi assinada digitalmente e está pronta para envio.</p>
-
-                                    <div className="flex justify-center gap-4">
-                                      <Button variant="outline" className="w-40">Visualizar PDF</Button>
-                                      <Button className="w-40 bg-violet-600 hover:bg-violet-700">Enviar por SMS</Button>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </motion.div>
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </TabsContent>
-
-                    {appContext === 'psychology' && (
-                      <>
-                        <TabsContent value="summary" className="h-full m-0 overflow-auto">
-                          <ScrollArea className="h-full"><div className="p-8">Resumo da Sessão...</div></ScrollArea>
-                        </TabsContent>
-                        <TabsContent value="themes" className="h-full m-0 overflow-auto">
-                          <ScrollArea className="h-full"><div className="p-8"><SessionThemesAndGoals patientName={selectedPatient?.name || ''} /></div></ScrollArea>
-                        </TabsContent>
-                        <TabsContent value="interventions" className="h-full m-0 overflow-auto">
-                          <ScrollArea className="h-full"><div className="p-8"><TherapeuticInterventions patientName={selectedPatient?.name || ''} /></div></ScrollArea>
-                        </TabsContent>
-                      </>
-                    )}
-
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </Tabs>
-          </div>
-        </div>
+            </AnimatePresence>
+          </motion.div>
+        </Tabs>
       </div>
     </AppLayout>
   );
 }
-

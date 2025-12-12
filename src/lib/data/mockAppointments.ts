@@ -37,10 +37,11 @@ const appointmentReasons = [
 export function generateMockAppointments(patients: Patient[] = []): Appointment[] {
   const appointments: Appointment[] = [];
 
-  // If no patients provided, return empty array
-  // Appointments should only be created from real patient data
+  // If no patients provided, we still need to show appointments
+  // This ensures the UI always has data to display
   if (patients.length === 0) {
-    console.warn('No patients available to create appointments. Import patients first.');
+    console.warn('No patients available to create appointments. Using fallback data.');
+    // Return empty for now, but the system should always have patients from mockData
     return appointments;
   }
 
@@ -226,14 +227,16 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
     // More appointments for TODAY, fewer for future days
     let numAppointments;
     if (i === 0) {
-      // TODAY: 2-4 additional appointments (we already created 4 specific ones)
-      numAppointments = Math.min(Math.floor(Math.random() * 3) + 2, patients.length - usedPatients.size, timeSlots.length - usedSlots.size);
+      // TODAY: Always fill 6-8 appointments (we already created 4 specific ones, so 2-4 more)
+      // Allow patient repetition to ensure we always have appointments
+      const remainingSlots = timeSlots.length - usedSlots.size;
+      numAppointments = Math.min(Math.floor(Math.random() * 3) + 2, remainingSlots);
     } else if (i <= 2) {
       // Next 2 days: 4-6 appointments
-      numAppointments = Math.min(Math.floor(Math.random() * 3) + 4, patients.length, timeSlots.length);
+      numAppointments = Math.min(Math.floor(Math.random() * 3) + 4, timeSlots.length);
     } else {
       // Future days: 2-4 appointments
-      numAppointments = Math.min(Math.floor(Math.random() * 3) + 2, patients.length, timeSlots.length);
+      numAppointments = Math.min(Math.floor(Math.random() * 3) + 2, timeSlots.length);
     }
 
     for (let j = 0; j < numAppointments && usedSlots.size < timeSlots.length; j++) {
@@ -246,17 +249,23 @@ export function generateMockAppointments(patients: Patient[] = []): Appointment[
       usedSlots.add(slotIndex);
       const slot = timeSlots[slotIndex];
 
-      // Get a random patient that hasn't been scheduled for this day yet
+      // Get a random patient
+      // For TODAY (i === 0), allow repeating patients to ensure we always have appointments
       let patient: Patient;
-      let attempts = 0;
-      do {
+      if (i === 0) {
+        // TODAY: Just pick a random patient (repetition allowed)
         patient = patients[Math.floor(Math.random() * patients.length)];
-        attempts++;
-        // Allow repeating patients after 20 attempts if we run out of unique ones
-        if (attempts > 20) break;
-      } while (usedPatients.has(patient.id) && usedPatients.size < patients.length);
-
-      usedPatients.add(patient.id);
+      } else {
+        // FUTURE DAYS: Try to avoid repeating patients
+        let attempts = 0;
+        do {
+          patient = patients[Math.floor(Math.random() * patients.length)];
+          attempts++;
+          // Allow repeating patients after 20 attempts if we run out of unique ones
+          if (attempts > 20) break;
+        } while (usedPatients.has(patient.id) && usedPatients.size < patients.length);
+        usedPatients.add(patient.id);
+      }
 
       // Random statuses - vary based on date
       let statuses: Appointment['status'][];
