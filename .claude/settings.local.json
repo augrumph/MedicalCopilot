@@ -40,7 +40,12 @@
       "Bash(git checkout:*)",
       "Bash(git push:*)",
       "Bash(npx shadcn-ui add:*)",
-      "Bash(npx shadcn:*)"
+      "Bash(npx shadcn:*)",
+      "Bash(cat:*)",
+      "Bash(rm:*)",
+      "Bash(npx ai-elements@latest add message-thread)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:registry.ai-sdk.dev)"
     ],
     "deny": [],
     "ask": []

@@ -1,4 +1,4 @@
-export type AppContext = 'medical' | 'psychology';
+export type AppContext = 'medical';
 
 export interface ContextConfig {
   // General
@@ -71,38 +71,6 @@ export const contextConfigs: Record<AppContext, ContextConfig> = {
 
     searchPlaceholder: 'Buscar paciente, diagnóstico ou nota...',
     notePlaceholder: 'Digite a nota clínica da consulta...',
-  },
-
-  psychology: {
-    appName: 'Psychology Copilot',
-    professionalTitle: 'Psicólogo',
-    professionalTitleShort: 'Psi.',
-
-    patientLabel: 'Paciente',
-    patientLabelPlural: 'Pacientes',
-
-    consultationLabel: 'Sessão',
-    consultationLabelPlural: 'Sessões',
-    consultationAction: 'Iniciar Sessão',
-    consultationInProgress: 'Sessão em andamento',
-
-    diagnosisLabel: 'Demanda',
-    diagnosisLabelPlural: 'Demandas',
-    clinicalNoteLabel: 'Evolução da Sessão',
-    summaryLabel: 'Observações para o Paciente',
-
-    startConsultationAction: 'Iniciar Sessão',
-    finishConsultationAction: 'Finalizar Sessão',
-    generateNoteAction: 'Gerar Evolução',
-
-    historyTitle: 'Histórico de Sessões',
-    historyDescription: 'Todas as sessões finalizadas',
-
-    dashboardTitle: 'Dashboard Psicológico',
-    dashboardWelcome: 'Bem-vindo de volta',
-
-    searchPlaceholder: 'Buscar paciente, demanda ou evolução...',
-    notePlaceholder: 'Digite a evolução da sessão...',
   }
 };
 
