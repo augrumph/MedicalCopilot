@@ -24,9 +24,9 @@ import { Avatar, AvatarFallback} from'@/components/ui/avatar'
 import { Button} from'@/components/ui/button'
 import { useAppStore} from'@/stores/appStore'
 import { cn} from'@/lib/utils'
-import { getContextConfig} from'@/lib/contextConfig'
+import { getContextConfig, type AppContext} from'@/lib/contextConfig'
 
-const getMenuItems = (appContext:'medical') => {
+const getMenuItems = (appContext: AppContext) => {
  const config = getContextConfig(appContext);
  return [
  {
