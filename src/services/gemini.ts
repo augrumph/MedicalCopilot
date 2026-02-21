@@ -1,7 +1,7 @@
 
-const GEMINI_API_KEY = 'AIzaSyAibYRaf69MsUqJPir3Ahs9Ia7mxEJ8kH8';
-// User requested Gemini 3 Flash. Using the most stable endpoint available for this key.
-// const MODEL_NAME = 'gemini-3-flash-preview'; 
+// Read Gemini API Key from environment variable
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+// Using Gemini 3 Flash as per official documentation
 const MODEL_NAME = 'gemini-3-flash-preview';
 
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent`;
