@@ -24,6 +24,7 @@ import { useChatAI } from '@/hooks/useChatAI';
 import { MemedPrescription } from '@/components/domain/prescription/MemedPrescription';
 import { ExamRequestPanel } from '@/components/consultation/ExamRequestPanel';
 import { AtestadoPanel } from '@/components/consultation/AtestadoPanel';
+import { RichAIResponse } from '@/components/copilot/RichAIResponse';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -126,13 +127,20 @@ export function ConsultationPage() {
     onTranscript
   });
 
-  // AI Analysis (Real-time insights - faster and smarter)
-  const { insights } = useOpenAIAnalysis({
+  // AI Analysis (Real-time insights - every 30 seconds)
+  const { insights, isAnalyzing: isAnalyzingInsights } = useOpenAIAnalysis({
     transcript: currentConsultation?.transcript || '',
-    analysisInterval: 10000, // Analyze every 10 seconds for faster insights
-    minTranscriptLength: 30, // Start analyzing with less text
+    analysisInterval: 30000, // Analyze every 30 seconds
+    minTranscriptLength: 50, // Start analyzing with at least 50 chars
     enabled: isListening, // Only analyze while recording
   });
+
+  // Debug: Log when insights are being analyzed
+  useEffect(() => {
+    if (isAnalyzingInsights) {
+      console.log('🔍 Insights being analyzed...');
+    }
+  }, [isAnalyzingInsights]);
 
   // SOAP Generator
   const { generateSOAP, isGenerating: isGeneratingSOAP } = useSOAPGenerator();
@@ -175,12 +183,15 @@ export function ConsultationPage() {
   useEffect(() => {
     if (insights.length === 0) return;
 
+    console.log(`📊 Converting ${insights.length} insights to feedCards`);
+
     const newCards: AICard[] = insights.map(insight => ({
       id: insight.id,
       source: 'ai' as const,
       type: insight.type === 'alert' ? 'alert' :
         insight.type === 'suggestion' ? 'suggestion' :
-          insight.type === 'diagnostic' ? 'diagnostic' : 'action',
+          insight.type === 'diagnostic' ? 'diagnostic' :
+            insight.type === 'exam' ? 'suggestion' : 'action',
       title: insight.title,
       content: insight.content,
       tags: insight.tags,
@@ -191,6 +202,11 @@ export function ConsultationPage() {
       // Evitar duplicatas
       const existingIds = new Set(prev.map(c => c.id));
       const uniqueNew = newCards.filter(c => !existingIds.has(c.id));
+
+      if (uniqueNew.length > 0) {
+        console.log(`✅ Adding ${uniqueNew.length} new insight cards`);
+      }
+
       return [...prev, ...uniqueNew];
     });
   }, [insights]);
@@ -238,11 +254,11 @@ export function ConsultationPage() {
       setFeedCards(prev => prev.filter(card => card.id !== loadingId));
 
       if (response) {
-        // Add AI response
+        // Add AI response (mark as interaction for rich rendering)
         const aiMessage: AICard = {
           id: Date.now().toString(),
           source: 'ai',
-          type: 'suggestion',
+          type: 'interaction',
           title: '💡 Assistente IA',
           content: response,
           timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
@@ -711,6 +727,41 @@ export function ConsultationPage() {
                                   );
                                 }
 
+                                // Render chat responses with rich formatting
+                                if (card.type === 'interaction') {
+                                  return (
+                                    <motion.div
+                                      key={card.id}
+                                      layout
+                                      initial={{ opacity: 0, y: 20 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, scale: 0.95 }}
+                                      className="lg:col-span-2 xl:col-span-3"
+                                    >
+                                      <div className="flex justify-start gap-3">
+                                        <Avatar className="h-10 w-10 mt-1 border-2 border-white shadow-md ring-2 ring-purple-100">
+                                          <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                                            <Brain className="w-5 h-5" />
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 bg-white rounded-2xl rounded-tl-sm shadow-lg border-2 border-purple-100 overflow-hidden">
+                                          <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                              <Sparkles className="w-4 h-4 text-white" />
+                                              <span className="text-white font-bold text-sm">Análise do Copiloto</span>
+                                            </div>
+                                            <span className="text-white/80 text-xs">{card.timestamp}</span>
+                                          </div>
+                                          <div className="p-4">
+                                            <RichAIResponse content={card.content} />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  );
+                                }
+
+                                // Render insights with compact card format
                                 return (
                                   <motion.div
                                     key={card.id}
@@ -735,9 +786,9 @@ export function ConsultationPage() {
                                         <div className={cn(
                                           "absolute top-0 left-0 right-0 h-1",
                                           card.type === 'alert' ? 'bg-gradient-to-r from-red-400 to-red-600' :
-                                          card.type === 'suggestion' ? 'bg-gradient-to-r from-blue-400 to-blue-600' :
-                                          card.type === 'diagnostic' ? 'bg-gradient-to-r from-purple-400 to-purple-600' :
-                                          'bg-gradient-to-r from-green-400 to-green-600'
+                                            card.type === 'suggestion' ? 'bg-gradient-to-r from-blue-400 to-blue-600' :
+                                              card.type === 'diagnostic' ? 'bg-gradient-to-r from-purple-400 to-purple-600' :
+                                                'bg-gradient-to-r from-green-400 to-green-600'
                                         )} />
 
                                         <div className="flex items-start gap-3 mt-1">

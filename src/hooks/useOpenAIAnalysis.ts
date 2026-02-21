@@ -96,21 +96,29 @@ export function useOpenAIAnalysis({
     const [error, setError] = useState<string | null>(null);
 
     const lastAnalyzedTranscript = useRef<string>('');
+    const transcriptRef = useRef<string>(transcript);
     const analysisTimerRef = useRef<NodeJS.Timeout | null>(null);
     const insightIdCounter = useRef(0);
+
+    // Keep transcript ref updated always
+    useEffect(() => {
+        transcriptRef.current = transcript;
+    }, [transcript]);
 
     /**
      * Trigger manual analysis
      */
     const triggerAnalysis = useCallback(async () => {
+        const currentTranscript = transcriptRef.current;
+
         // Skip if transcript too short
-        if (!transcript || transcript.length < minTranscriptLength) {
+        if (!currentTranscript || currentTranscript.length < minTranscriptLength) {
             console.log('⏭️ Transcript too short, skipping analysis');
             return;
         }
 
         // Skip if already analyzed this exact transcript
-        if (transcript === lastAnalyzedTranscript.current) {
+        if (currentTranscript === lastAnalyzedTranscript.current) {
             console.log('⏭️ Already analyzed this transcript');
             return;
         }
@@ -125,9 +133,9 @@ export function useOpenAIAnalysis({
         setError(null);
 
         try {
-            console.log(`🔍 Analyzing transcript (${transcript.length} chars)...`);
+            console.log(`🔍 Analyzing transcript (${currentTranscript.length} chars)...`);
 
-            const userPrompt = `TRANSCRIÇÃO DA CONSULTA:\n\n${transcript}\n\nAnalise e gere insights médicos relevantes em JSON.`;
+            const userPrompt = `TRANSCRIÇÃO DA CONSULTA:\n\n${currentTranscript}\n\nAnalise e gere insights médicos relevantes em JSON.`;
 
             const aiResponse = await callGemini(
                 [{ role: 'user', content: userPrompt }],
@@ -147,7 +155,7 @@ export function useOpenAIAnalysis({
 
             if (!parsed || parsed.insights.length === 0) {
                 console.log('ℹ️ No new insights generated');
-                lastAnalyzedTranscript.current = transcript;
+                lastAnalyzedTranscript.current = currentTranscript;
                 return;
             }
 
@@ -163,7 +171,7 @@ export function useOpenAIAnalysis({
 
             console.log(`✅ Generated ${newInsights.length} insights:`, newInsights.map(i => i.title));
             setInsights(prev => [...prev, ...newInsights]);
-            lastAnalyzedTranscript.current = transcript;
+            lastAnalyzedTranscript.current = currentTranscript;
 
         } catch (err: any) {
             console.error('❌ AI Analysis failed:', err);
@@ -171,32 +179,34 @@ export function useOpenAIAnalysis({
         } finally {
             setIsAnalyzing(false);
         }
-    }, [transcript, minTranscriptLength, isAnalyzing]);
+    }, [minTranscriptLength, isAnalyzing]);
 
     /**
      * Auto-analysis effect
      */
     useEffect(() => {
-        if (!enabled || !transcript) {
+        if (!enabled) {
+            if (analysisTimerRef.current) {
+                clearInterval(analysisTimerRef.current);
+                analysisTimerRef.current = null;
+            }
             return;
         }
 
-        // Clear existing timer
-        if (analysisTimerRef.current) {
-            clearTimeout(analysisTimerRef.current);
-        }
+        console.log(`⏱️ Starting auto-analysis interval: ${analysisInterval}ms`);
 
-        // Schedule new analysis
-        analysisTimerRef.current = setTimeout(() => {
+        // Use setInterval for constant polling instead of setTimeout which resets
+        analysisTimerRef.current = setInterval(() => {
             triggerAnalysis();
         }, analysisInterval);
 
         return () => {
             if (analysisTimerRef.current) {
-                clearTimeout(analysisTimerRef.current);
+                clearInterval(analysisTimerRef.current);
+                analysisTimerRef.current = null;
             }
         };
-    }, [transcript, enabled, analysisInterval, triggerAnalysis]);
+    }, [enabled, analysisInterval, triggerAnalysis]);
 
     /**
      * Clear insights
