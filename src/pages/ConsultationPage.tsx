@@ -9,7 +9,7 @@ import {
   Stethoscope,
   Sparkles,
   History, LayoutTemplate, ArrowRight,
-  Send, FlaskConical
+  Send, FlaskConical, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -514,45 +514,173 @@ export function ConsultationPage() {
 
               {/* --- TAB LIVE --- */}
               <TabsContent key="live" value="live" className="flex-1 m-0 outline-none data-[state=inactive]:hidden print:hidden">
-                <div className="flex flex-col h-full">
-                  {/* Full-width AI Copilot Hub */}
-                  <Card className="flex-1 border-0 shadow-lg bg-white rounded-xl md:rounded-2xl relative overflow-hidden flex flex-col">
-                    <CardHeader className="pb-3 md:pb-4 px-3 sm:px-4 md:px-6 pt-3 md:pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 md:gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center flex-shrink-0">
-                            <Brain className="h-4 w-4 text-purple-600" />
+                <div className="flex flex-col h-full gap-4">
+                  {/* Stats Bar - Mobile Optimized */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 shadow-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                          <Brain className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-white/80 text-xs font-medium">Insights</p>
+                          <p className="text-white text-2xl font-bold">{feedCards.filter(c => c.source === 'ai').length}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.05 }}
+                      className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 shadow-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                          <Activity className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-white/80 text-xs font-medium">Status</p>
+                          <p className="text-white text-sm font-bold">{isListening ? 'Gravando' : 'Pausado'}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-4 shadow-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                          <Sparkles className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-white/80 text-xs font-medium">IA</p>
+                          <p className="text-white text-sm font-bold">Gemini 3</p>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.15 }}
+                      className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-4 shadow-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-white/80 text-xs font-medium">Transcrição</p>
+                          <p className="text-white text-sm font-bold">{currentConsultation?.transcript ? `${currentConsultation.transcript.length} chars` : '0 chars'}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {/* Main Hub - Enhanced Design */}
+                  <Card className="flex-1 border-0 shadow-xl bg-gradient-to-br from-gray-50 via-white to-gray-50 rounded-2xl relative overflow-hidden flex flex-col">
+                    {/* Decorative Background */}
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-100/30 to-pink-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+                    <CardHeader className="pb-4 px-4 md:px-6 pt-4 md:pt-6 border-b border-gray-100 bg-white/50 backdrop-blur-sm relative z-10">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                            <Brain className="h-6 w-6 text-white" />
                           </div>
                           <div>
-                            <CardTitle className="text-base md:text-lg">Hub de Insights Médicos</CardTitle>
-                            <CardDescription className="text-[11px] md:text-xs">
-                              {isListening ? 'Analisando em tempo real...' : 'Aguardando início da consulta'}
+                            <CardTitle className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                              Hub de Insights Médicos
+                            </CardTitle>
+                            <CardDescription className="text-xs mt-0.5 flex items-center gap-2">
+                              {isListening ? (
+                                <>
+                                  <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                  </span>
+                                  <span className="text-green-600 font-semibold">Analisando em tempo real</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="h-2 w-2 rounded-full bg-gray-400"></span>
+                                  <span className="text-gray-500">Aguardando início da consulta</span>
+                                </>
+                              )}
                             </CardDescription>
                           </div>
                         </div>
-                        {feedCards.length > 0 && (
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => setMinimizedCards(new Set(feedCards.map(c => c.id)))} className="text-xs h-7">
-                              Minimizar Tudo
-                            </Button>
-                          </div>
-                        )}
+
+                        <div className="flex items-center gap-2">
+                          {feedCards.length > 0 && (
+                            <>
+                              <Badge className="bg-purple-100 text-purple-700 border-0 px-3 py-1.5 font-bold">
+                                {feedCards.filter(c => c.source === 'ai').length} insights
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setMinimizedCards(new Set(feedCards.map(c => c.id)))}
+                                className="text-xs h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                              >
+                                <ChevronUp className="w-4 h-4 mr-1" />
+                                Minimizar
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="flex-1 px-3 sm:px-4 md:px-6 pb-3 md:pb-6 relative">
+
+                    <CardContent className="flex-1 px-4 md:px-6 pb-24 md:pb-28 relative overflow-hidden">
                       <ScrollArea className="h-full">
-                        <div className="pb-20">
+                        <div className="py-4">
                           {feedCards.length === 0 && (
-                            <div className="flex flex-col items-center justify-center h-[400px] text-gray-400">
-                              <Brain className="w-16 h-16 text-purple-400 mb-4 opacity-50" />
-                              <p className="font-bold text-lg text-gray-700 mb-2">Aguardando Conversa</p>
-                              <p className="text-sm text-gray-500 text-center max-w-md">
-                                Clique em <span className="font-semibold text-purple-600">Iniciar</span> para começar a gravar.
-                                A IA irá gerar insights, alertas críticos e sugestões em tempo real.
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="flex flex-col items-center justify-center h-[400px]"
+                            >
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full blur-2xl opacity-20 animate-pulse"></div>
+                                <div className="relative w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl flex items-center justify-center shadow-lg">
+                                  <Brain className="w-12 h-12 text-purple-500" />
+                                </div>
+                              </div>
+                              <p className="font-bold text-xl text-gray-800 mb-2 mt-6">Aguardando Consulta</p>
+                              <p className="text-sm text-gray-500 text-center max-w-md leading-relaxed">
+                                Clique em <span className="font-bold text-purple-600">Iniciar</span> para começar a gravar.
+                                A IA gerará insights, alertas críticos e sugestões em tempo real durante a consulta.
                               </p>
-                            </div>
+                              <div className="flex items-center gap-2 mt-6">
+                                <div className="flex -space-x-2">
+                                  <div className="w-8 h-8 rounded-full bg-red-100 border-2 border-white flex items-center justify-center">
+                                    <Activity className="w-4 h-4 text-red-600" />
+                                  </div>
+                                  <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center">
+                                    <Sparkles className="w-4 h-4 text-blue-600" />
+                                  </div>
+                                  <div className="w-8 h-8 rounded-full bg-purple-100 border-2 border-white flex items-center justify-center">
+                                    <Stethoscope className="w-4 h-4 text-purple-600" />
+                                  </div>
+                                  <div className="w-8 h-8 rounded-full bg-green-100 border-2 border-white flex items-center justify-center">
+                                    <Pill className="w-4 h-4 text-green-600" />
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-400">4 tipos de insights</p>
+                              </div>
+                            </motion.div>
                           )}
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+
+                          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                             <AnimatePresence mode="popLayout">
                               {feedCards.map((card) => {
                                 const style = getCardStyles(card.type);
@@ -565,14 +693,16 @@ export function ConsultationPage() {
                                       layout
                                       initial={{ opacity: 0, y: 20 }}
                                       animate={{ opacity: 1, y: 0 }}
-                                      className="md:col-span-2 lg:col-span-3"
+                                      exit={{ opacity: 0, scale: 0.95 }}
+                                      className="lg:col-span-2 xl:col-span-3"
                                     >
                                       <div className="flex justify-end gap-3 group">
-                                        <div className="bg-[#450693] text-white rounded-2xl rounded-tr-sm py-3 px-5 shadow-lg max-w-[80%]">
-                                          <p className="text-sm font-medium">{card.content}</p>
+                                        <div className="bg-gradient-to-r from-[#450693] to-[#6B00B8] text-white rounded-2xl rounded-tr-sm py-3 px-5 shadow-lg hover:shadow-xl transition-shadow max-w-[85%] md:max-w-[70%]">
+                                          <p className="text-sm font-medium leading-relaxed">{card.content}</p>
+                                          <p className="text-xs text-white/60 mt-2">{card.timestamp}</p>
                                         </div>
-                                        <Avatar className="h-9 w-9 mt-1 border-2 border-white shadow-sm">
-                                          <AvatarFallback className="bg-gray-200 text-gray-600">
+                                        <Avatar className="h-10 w-10 mt-1 border-2 border-white shadow-md ring-2 ring-purple-100">
+                                          <AvatarFallback className="bg-gradient-to-br from-purple-100 to-pink-100 text-purple-700">
                                             <User className="w-5 h-5" />
                                           </AvatarFallback>
                                         </Avatar>
@@ -585,59 +715,104 @@ export function ConsultationPage() {
                                   <motion.div
                                     key={card.id}
                                     layout
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className={cn("transition-all", isMinimized ? "md:col-span-2 lg:col-span-3" : "")}
+                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    whileHover={{ scale: isMinimized ? 1 : 1.02 }}
+                                    className={cn(
+                                      "transition-all",
+                                      isMinimized && "lg:col-span-2 xl:col-span-3"
+                                    )}
                                   >
                                     <Card className={cn(
-                                      "border shadow-sm relative overflow-hidden transition-all duration-300",
+                                      "border-2 relative overflow-hidden transition-all duration-300 hover:shadow-xl",
                                       style.border,
                                       style.bg,
-                                      isMinimized ? "shadow-none border-dashed bg-white/50" : "shadow-md"
+                                      isMinimized ? "shadow-sm border-dashed bg-gray-50/50" : "shadow-lg"
                                     )}>
-                                      <CardContent className={cn("p-3 relative", isMinimized ? "py-2" : "md:p-4")}>
-                                        <div className="flex items-start gap-3">
+                                      <CardContent className={cn("p-4 relative", isMinimized && "py-3")}>
+                                        {/* Icon indicator bar */}
+                                        <div className={cn(
+                                          "absolute top-0 left-0 right-0 h-1",
+                                          card.type === 'alert' ? 'bg-gradient-to-r from-red-400 to-red-600' :
+                                          card.type === 'suggestion' ? 'bg-gradient-to-r from-blue-400 to-blue-600' :
+                                          card.type === 'diagnostic' ? 'bg-gradient-to-r from-purple-400 to-purple-600' :
+                                          'bg-gradient-to-r from-green-400 to-green-600'
+                                        )} />
+
+                                        <div className="flex items-start gap-3 mt-1">
                                           <div className={cn(
-                                            "p-2 rounded-lg shadow-sm shrink-0 transition-all",
+                                            "p-2.5 rounded-xl shadow-md shrink-0 transition-all",
                                             style.iconBg,
-                                            isMinimized ? "p-1.5 bg-transparent shadow-none" : ""
+                                            isMinimized && "p-2 shadow-sm"
                                           )}>
-                                            <style.icon className={cn("transition-all", style.iconColor, isMinimized ? "w-4 h-4" : "w-4 h-4")} />
+                                            <style.icon className={cn(
+                                              "transition-all",
+                                              style.iconColor,
+                                              isMinimized ? "w-4 h-4" : "w-5 h-5"
+                                            )} />
                                           </div>
+
                                           <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-2">
-                                              <div className="flex items-center gap-2">
-                                                <h4 className={cn("font-bold text-xs uppercase tracking-wide leading-tight", style.iconColor)}>
-                                                  {card.title || 'Insight'}
+                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                              <div className="flex-1">
+                                                <h4 className={cn(
+                                                  "font-bold text-sm leading-tight",
+                                                  style.titleColor
+                                                )}>
+                                                  {card.title || 'Insight Médico'}
                                                 </h4>
-                                                {isMinimized && <span className="text-[10px] text-gray-400 italic font-medium truncate max-w-[200px]">Oculto</span>}
+                                                {!isMinimized && (
+                                                  <p className="text-[10px] text-gray-400 mt-0.5 font-medium">
+                                                    {card.timestamp}
+                                                  </p>
+                                                )}
                                               </div>
                                               <button
                                                 onClick={() => toggleCardMinimize(card.id)}
-                                                className="hover:bg-black/5 rounded p-1 transition-colors text-gray-400 hover:text-gray-600"
+                                                className="hover:bg-black/5 rounded-lg p-1.5 transition-colors text-gray-400 hover:text-gray-700 shrink-0"
                                               >
-                                                {isMinimized ? <Eye className="w-3 h-3" /> : <ChevronUp className="w-4 h-4" />}
+                                                {isMinimized ? (
+                                                  <Eye className="w-4 h-4" />
+                                                ) : (
+                                                  <ChevronUp className="w-4 h-4" />
+                                                )}
                                               </button>
                                             </div>
+
                                             <AnimatePresence>
                                               {!isMinimized && (
                                                 <motion.div
                                                   initial={{ height: 0, opacity: 0 }}
                                                   animate={{ height: 'auto', opacity: 1 }}
                                                   exit={{ height: 0, opacity: 0 }}
-                                                  className="overflow-hidden"
+                                                  transition={{ duration: 0.2 }}
                                                 >
-                                                  <p className="text-xs text-gray-800 font-medium leading-relaxed mb-2 mt-2">{card.content}</p>
-                                                  {card.tags && (
-                                                    <div className="flex flex-wrap gap-1.5 mb-2">
+                                                  <p className="text-sm text-gray-700 font-medium leading-relaxed mb-3">
+                                                    {card.content}
+                                                  </p>
+                                                  {card.tags && card.tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1.5">
                                                       {card.tags.map(tag => (
-                                                        <Badge key={tag} variant="outline" className={cn("bg-white border-0 shadow-sm text-[9px] px-1.5 py-0.5", style.iconColor)}>
+                                                        <Badge
+                                                          key={tag}
+                                                          variant="outline"
+                                                          className={cn(
+                                                            "border-2 font-semibold text-[10px] px-2 py-0.5",
+                                                            style.iconColor
+                                                          )}
+                                                        >
                                                           {tag}
                                                         </Badge>
                                                       ))}
                                                     </div>
                                                   )}
                                                 </motion.div>
+                                              )}
+                                              {isMinimized && (
+                                                <p className="text-xs text-gray-400 italic truncate">
+                                                  Clique para expandir
+                                                </p>
                                               )}
                                             </AnimatePresence>
                                           </div>
@@ -648,37 +823,53 @@ export function ConsultationPage() {
                                 );
                               })}
                             </AnimatePresence>
-                            <div ref={feedEndRef} className="md:col-span-2 lg:col-span-3" />
+                            <div ref={feedEndRef} className="lg:col-span-2 xl:col-span-3" />
                           </div>
                         </div>
                       </ScrollArea>
-                      <div className="p-3 md:p-4 bg-white border-t border-gray-100 absolute bottom-0 left-0 right-0 z-10">
-                        <div className="relative flex items-center gap-2">
-                          <Input
-                            value={userQuery}
-                            onChange={(e) => setUserQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleUserSubmit()}
-                            placeholder="Pergunte ao Copiloto..."
-                            className="pl-4 h-11 rounded-xl shadow-sm bg-white"
-                          />
-                          <Button
-                            size="icon"
-                            onClick={handleUserSubmit}
-                            disabled={!userQuery.trim()}
-                            className="h-11 w-11 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 shadow-md text-white shrink-0"
-                          >
-                            <Send className="w-4 h-4" />
-                          </Button>
+
+                      {/* Chat Input - Sticky Bottom */}
+                      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-white via-white to-transparent backdrop-blur-sm border-t border-gray-100">
+                        <div className="max-w-4xl mx-auto">
+                          <div className="relative flex items-center gap-2 bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-1.5">
+                            <Input
+                              value={userQuery}
+                              onChange={(e) => setUserQuery(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleUserSubmit()}
+                              placeholder="Pergunte ao Copiloto sobre a consulta..."
+                              className="flex-1 border-0 focus-visible:ring-0 h-11 text-sm bg-transparent px-4"
+                            />
+                            <Button
+                              size="icon"
+                              onClick={handleUserSubmit}
+                              disabled={!userQuery.trim() || isChatProcessing}
+                              className="h-11 w-11 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                            >
+                              {isChatProcessing ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Send className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-[10px] text-center text-gray-400 mt-2">
+                            Powered by <span className="font-semibold text-purple-600">Gemini 3 Flash</span>
+                          </p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Hidden transcript for debugging - remove in production */}
+                  {/* Debug Info - Development Only */}
                   {process.env.NODE_ENV === 'development' && currentConsultation?.transcript && (
-                    <div className="mt-2 text-xs text-gray-400 font-mono max-h-20 overflow-hidden">
-                      Debug: {currentConsultation.transcript.substring(0, 100)}...
-                    </div>
+                    <Card className="border-2 border-dashed border-amber-200 bg-amber-50/50">
+                      <CardContent className="p-3">
+                        <p className="text-xs font-mono text-amber-800">
+                          <span className="font-bold">Debug Transcript:</span> {currentConsultation.transcript.substring(0, 150)}
+                          {currentConsultation.transcript.length > 150 && '...'}
+                        </p>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               </TabsContent>
