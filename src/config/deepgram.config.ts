@@ -120,7 +120,7 @@ export const DEEPGRAM_CONFIG = {
   // Advanced features
   utterances: true,        // Detectar fim de frase
   utt_split: 0.8,         // Sensibilidade de divisão de frase
-} as const;
+};
 
 /**
  * Audio Chunk Configuration

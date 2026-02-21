@@ -183,7 +183,7 @@ export function useSpeakerDiarization({
    */
   const processTranscription = useCallback((
     text: string,
-    speakerId: number, // Ignoramos este ID - Deepgram sempre retorna 0
+    _speakerId: number, // Ignoramos este ID - Deepgram sempre retorna 0
     isFinal: boolean = false,
     confidence?: number
   ) => {

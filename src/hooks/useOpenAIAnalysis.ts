@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { AIInsight, AIInsightType, AIAnalysisResponse } from '@/types/transcription.types';
+import type { AIInsight, AIAnalysisResponse } from '@/types/transcription.types';
 
 import { callGemini } from '../services/gemini';
 

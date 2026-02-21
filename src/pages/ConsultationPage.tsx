@@ -18,7 +18,6 @@ import { AppLayout } from '@/components/AppLayout';
 import { useAppStore } from '@/stores/appStore';
 import { getPatientInitials, cn } from '@/lib/utils';
 import { useDeepgramNative as useDeepgram } from '@/hooks/useDeepgramNative';
-import { useSpeakerDiarization } from '@/hooks/useSpeakerDiarization';
 import { useOpenAIAnalysis } from '@/hooks/useOpenAIAnalysis';
 import { useSOAPGenerator } from '@/hooks/useSOAPGenerator';
 import { useChatAI } from '@/hooks/useChatAI';
@@ -111,7 +110,7 @@ export function ConsultationPage() {
   const [minimizedCards, setMinimizedCards] = useState<Set<string>>(new Set());
 
   // Deepgram Integration (Simplified - No diarization, focus on AI insights)
-  const onTranscript = useCallback((transcript: string, isFinal: boolean, speakerId?: number, confidence?: number) => {
+  const onTranscript = useCallback((transcript: string, isFinal: boolean, _speakerId?: number, confidence?: number) => {
     console.log('📝 Deepgram transcript:', { transcript, isFinal, confidence });
 
     // Simple append to transcript - no speaker detection
@@ -160,7 +159,6 @@ export function ConsultationPage() {
 
   // Refs
   const feedEndRef = useRef<HTMLDivElement>(null);
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
 
   // --- EFEITOS ---
   useEffect(() => { setActiveTab('live'); }, []);
