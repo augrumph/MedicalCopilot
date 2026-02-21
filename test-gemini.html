@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Gemini API</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
+        #output { white-space: pre-wrap; border: 1px solid #0f0; padding: 10px; margin-top: 20px; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste Gemini 3 Flash API</h1>
+    <button onclick="testGemini()">Testar Gemini 3 Flash</button>
+    <div id="output"></div>
+
+    <script>
+        const GEMINI_API_KEY = 'AIzaSyAibYRaf69MsUqJPir3Ahs9Ia7mxEJ8kH8';
+        const MODEL_NAME = 'gemini-3-flash-preview';
+        const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent`;
+
+        async function testGemini() {
+            const output = document.getElementById('output');
+            output.innerHTML = '⏳ Testando conexão com Gemini 3 Flash...\n';
+
+            const testTranscript = "Médico: Bom dia, o que o senhor está sentindo?\nPaciente: Doutor, estou com dor de cabeça forte há 3 dias e febre.";
+
+            const systemPrompt = `Você é um médico. Analise a transcrição e retorne insights em JSON.`;
+
+            const body = {
+                contents: [{
+                    role: 'user',
+                    parts: [{ text: `TRANSCRIÇÃO:\n${testTranscript}\n\nGere 1 insight médico em JSON no formato: {"insights": [{"type": "alert", "title": "Título", "content": "Conteúdo", "tags": ["tag1"]}]}` }]
+                }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                generationConfig: {
+                    temperature: 0.2,
+                    maxOutputTokens: 500,
+                    responseMimeType: "application/json"
+                }
+            };
+
+            try {
+                output.innerHTML += '📡 Enviando requisição...\n';
+                console.log('Request body:', JSON.stringify(body, null, 2));
+
+                const response = await fetch(`${ENDPOINT}?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                output.innerHTML += `📊 Status: ${response.status} ${response.statusText}\n`;
+
+                const data = await response.json();
+                console.log('Response:', data);
+
+                if (!response.ok) {
+                    output.innerHTML += `<span class="error">❌ ERRO: ${JSON.stringify(data, null, 2)}</span>\n`;
+                    return;
+                }
+
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (text) {
+                    output.innerHTML += `<span class="success">✅ SUCESSO! Resposta recebida:\n${text}</span>\n`;
+
+                    try {
+                        const parsed = JSON.parse(text);
+                        output.innerHTML += `\n📋 Insights gerados: ${parsed.insights?.length || 0}\n`;
+                        if (parsed.insights && parsed.insights.length > 0) {
+                            output.innerHTML += `\n🎯 Primeiro insight:\n${JSON.stringify(parsed.insights[0], null, 2)}\n`;
+                        }
+                    } catch (e) {
+                        output.innerHTML += `<span class="error">⚠️ Erro ao parsear JSON: ${e.message}</span>\n`;
+                    }
+                } else {
+                    output.innerHTML += `<span class="error">❌ Resposta vazia do Gemini</span>\n`;
+                }
+
+            } catch (error) {
+                output.innerHTML += `<span class="error">❌ ERRO DE REDE: ${error.message}</span>\n`;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
