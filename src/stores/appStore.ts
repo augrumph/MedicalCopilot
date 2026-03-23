@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Patient, Consultation, AISuggestions, SignatureType, Prescription } from '@/lib/types';
-import { generateMockPatients, generateMockConsultations } from '@/lib/mockData';
 import type { AppContext } from '@/lib/contextConfig';
 
 interface User {
