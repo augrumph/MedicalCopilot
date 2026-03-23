@@ -149,8 +149,7 @@ export function useDeepgram({
 
           // Log para debug
           if (isFinal) {
-            const speakerTag = speakerId !== undefined ? `[Speaker ${speakerId}]` : '';
-            // console.log(`📝 [Final] ${speakerTag} "${transcript}" (latency: ${latency}ms, conf: ${confidence?.toFixed(2) || 'N/A'})`);
+            // console.log(`📝 [Final] "${transcript}" (latency: ${latency}ms, conf: ${confidence?.toFixed(2) || 'N/A'})`);
           }
         }
       });

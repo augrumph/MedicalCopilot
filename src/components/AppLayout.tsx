@@ -13,9 +13,11 @@ interface AppLayoutProps {
   children: ReactNode;
   /** fullscreen: removes padding + disables outer scroll (for fixed-layout pages like consultation) */
   variant?: 'default' | 'fullscreen';
+  title?: string;
+  description?: string;
 }
 
-export function AppLayout({ children, variant = 'default' }: AppLayoutProps) {
+export function AppLayout({ children, variant = 'default', title, description }: AppLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const startProtocol = useProtocolsStore(state => state.startProtocol);
@@ -74,6 +76,12 @@ export function AppLayout({ children, variant = 'default' }: AppLayoutProps) {
           }
           tabIndex={-1}
         >
+          {title && (
+            <div className="mb-6">
+              <h1 className="text-2xl font-black text-primary tracking-tight">{title}</h1>
+              {description && <p className="text-sm text-primary/40 font-medium">{description}</p>}
+            </div>
+          )}
           {children}
         </main>
       </SidebarInset>

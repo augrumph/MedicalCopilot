@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import {
-  Mic, FileText, Shield, ArrowRight, Menu, X,
+  Mic, Shield, ArrowRight, Menu, X,
   Brain, Stethoscope, CheckCircle2, Zap, Activity,
   Clock, Lock, ChevronRight,
 } from "lucide-react";
@@ -16,13 +16,13 @@ const BG = "#FAFAF8";
 const up = (delay = 0) => ({
   initial:    { opacity: 0, y: 20 },
   animate:    { opacity: 1, y: 0 },
-  transition: { duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] },
+  transition: { duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] as any },
 });
 const reveal = (delay = 0) => ({
   initial:     { opacity: 0, y: 32 },
   whileInView: { opacity: 1, y: 0 },
   viewport:    { once: true, margin: "-80px" },
-  transition:  { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] },
+  transition:  { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] as any },
 });
 
 /* ─── floating hero panels ────────────────────────────────────────── */

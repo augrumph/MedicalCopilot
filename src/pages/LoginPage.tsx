@@ -7,7 +7,6 @@ import { useAppStore } from '@/stores/appStore';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { AnimatedGradientText } from '@/components/ui/animated-gradient-text';
 import { Spotlight } from '@/components/ui/spotlight';
 import { BgGrid } from '@/components/ui/bg-grid';
 import { toast } from 'sonner';
@@ -144,7 +143,7 @@ const LoginPage = () => {
       <BgGrid dotColor="#512B81" opacity={0.04} gap={28} />
 
       {/* ── Spotlight cursor ── */}
-      <Spotlight color="rgba(81,43,129,0.05)" size={900} />
+      <Spotlight fill="rgba(81,43,129,0.05)" />
 
       {/* ── Floating orbs ── */}
       <motion.div

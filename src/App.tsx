@@ -29,7 +29,6 @@ const API = import.meta.env.VITE_BACKEND_URL || 'https://api.medicalcopilot.com.
 function App() {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
-  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
   const setUser = useAppStore((s) => s.setUser);
 
   // On every app start, verify session with backend.

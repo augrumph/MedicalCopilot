@@ -29,8 +29,6 @@ export default defineConfig({
           'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', 'framer-motion', 'lucide-react'],
           // Data layer
           'vendor-data': ['@tanstack/react-query', 'zustand'],
-          // AI/audio — heavy, loaded only when needed
-          'vendor-ai': ['@google/generative-ai'],
           // Chart/analytics
           'vendor-charts': ['recharts'],
         },

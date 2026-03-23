@@ -18,7 +18,6 @@ import {
   Stethoscope,
   Loader2,
   Search,
-  CheckCircle2,
   AlertCircle,
   X,
   Plus,

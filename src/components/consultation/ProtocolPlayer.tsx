@@ -11,7 +11,6 @@ import {
     Activity,
     Clock,
     Info,
-    RefreshCcw,
     ArrowLeft
 } from 'lucide-react';
 import { useProtocolsStore } from '@/stores/protocolsStore';
