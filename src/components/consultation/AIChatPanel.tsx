@@ -1,4 +1,4 @@
-import { useState, useEffect} from'react';
+import { useState, useEffect, useRef} from'react';
 import { Bot} from'lucide-react';
 import { Badge} from'@/components/ui/badge';
 import { MessageList} from'@/components/ai/MessageList';
@@ -21,6 +21,8 @@ const MAX_MESSAGES = 20; // Limitar mensagens para performance
 export function AIChatPanel({ transcript, patientData, isActive}: AIChatPanelProps) {
  const [messages, setMessages] = useState<Message[]>([]);
  const [isThinking, setIsThinking] = useState(false);
+ const isMountedRef = useRef(true);
+ useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
 
  // Simular análise de IA quando a transcrição muda
  useEffect(() => {
@@ -40,9 +42,11 @@ export function AIChatPanel({ transcript, patientData, isActive}: AIChatPanelPro
 }, [transcript]);
 
  const analyzeAndRespond = (lastLine: string, lineCount: number) => {
+ if (!isMountedRef.current) return;
  setIsThinking(true);
 
- setTimeout(() => {
+ const timerId = setTimeout(() => {
+ if (!isMountedRef.current) return;
  const newMessages: Message[] = [];
 
  // Primeira interação - boas-vindas
@@ -198,8 +202,13 @@ export function AIChatPanel({ transcript, patientData, isActive}: AIChatPanelPro
 });
 }
 
- // Análise de dados do paciente
- if (patientData?.mainConditions && patientData.mainConditions.length > 0 && messages.length < 2) {
+ if (newMessages.length > 0) {
+ setMessages(prev => {
+ // Deduplication and patient-data guards use `prev` (fresh state, not stale closure)
+ const existingContents = new Set(prev.map(m => m.content));
+
+ // Patient-data messages gated on current message count
+ if (patientData?.mainConditions && patientData.mainConditions.length > 0 && prev.length < 2) {
  newMessages.push({
  id: (Date.now() + 14).toString(),
  role:'assistant',
@@ -209,8 +218,7 @@ export function AIChatPanel({ transcript, patientData, isActive}: AIChatPanelPro
  priority:'medium'
 });
 }
-
- if (patientData?.medications && patientData.medications.length > 0 && lineCount > 3 && messages.length < 5) {
+ if (patientData?.medications && patientData.medications.length > 0 && lineCount > 3 && prev.length < 5) {
  newMessages.push({
  id: (Date.now() + 15).toString(),
  role:'assistant',
@@ -220,8 +228,7 @@ export function AIChatPanel({ transcript, patientData, isActive}: AIChatPanelPro
  priority:'high'
 });
 }
-
- if (patientData?.allergies && patientData.allergies.length > 0 && lineCount > 2 && messages.length < 3) {
+ if (patientData?.allergies && patientData.allergies.length > 0 && lineCount > 2 && prev.length < 3) {
  newMessages.push({
  id: (Date.now() + 16).toString(),
  role:'assistant',
@@ -232,20 +239,16 @@ export function AIChatPanel({ transcript, patientData, isActive}: AIChatPanelPro
 });
 }
 
- // Filtrar mensagens duplicadas usando Set para melhor performance
- const existingContents = new Set(messages.map(m => m.content));
- const uniqueMessages = newMessages.filter(msg => !existingContents.has(msg.content));
-
- if (uniqueMessages.length > 0) {
- setMessages(prev => {
- const updated = [...prev, ...uniqueMessages];
- // Limitar a MAX_MESSAGES mensagens mais recentes
+ const unique = newMessages.filter(msg => !existingContents.has(msg.content));
+ if (unique.length === 0) return prev;
+ const updated = [...prev, ...unique];
  return updated.length > MAX_MESSAGES ? updated.slice(-MAX_MESSAGES) : updated;
 });
 }
 
  setIsThinking(false);
 }, 800);
+ return timerId;
 };
 
  return (

@@ -36,7 +36,7 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, ErrorBo
  <div className="mt-6">
  <button
  type="button"
- className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#8C00FF] #450693] focus:outline-none"
+ className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#682bd7] hover:bg-[#4a1fa0] focus:outline-none"
  onClick={() => window.location.reload()}
  >
  Recarregar Página

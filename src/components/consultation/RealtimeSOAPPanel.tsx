@@ -8,6 +8,21 @@ import { motion, AnimatePresence} from'framer-motion';
 import { generateRealtimeSOAP, type RealtimeSOAP} from'@/lib/mockApi';
 import { cn} from'@/lib/utils';
 
+// Static Tailwind class map — dynamic `text-${color}-500` strings are purged in production
+const COLOR_CLASSES = {
+ blue:   { border: 'border-l-blue-500',   gradient: 'bg-gradient-to-br from-blue-500 to-blue-600 text-white',   letter: 'text-blue-600',   badge: 'bg-blue-50 text-blue-700 border-blue-200' },
+ green:  { border: 'border-l-green-500',  gradient: 'bg-gradient-to-br from-green-500 to-green-600 text-white',  letter: 'text-green-600',  badge: 'bg-green-50 text-green-700 border-green-200' },
+ amber:  { border: 'border-l-amber-500',  gradient: 'bg-gradient-to-br from-amber-500 to-amber-600 text-white',  letter: 'text-amber-600',  badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+ purple: { border: 'border-l-purple-500', gradient: 'bg-gradient-to-br from-purple-500 to-purple-600 text-white', letter: 'text-purple-600', badge: 'bg-purple-50 text-purple-700 border-purple-200' },
+} as const;
+type SOAPColor = keyof typeof COLOR_CLASSES;
+
+// Safe **bold** renderer — avoids dangerouslySetInnerHTML / XSS
+function renderBold(text: string): React.ReactNode {
+ const parts = text.split(/\*\*(.*?)\*\*/g);
+ return parts.map((part, i) => i % 2 === 1 ? <strong key={i}>{part}</strong> : part);
+}
+
 interface RealtimeSOAPPanelProps {
  transcript: string;
  isActive: boolean;
@@ -53,10 +68,11 @@ export function RealtimeSOAPPanel({ transcript, isActive}: RealtimeSOAPPanelProp
  title: string;
  letter: string;
  content: string;
- color: string;
+ color: SOAPColor;
  icon: any;
 }) => {
  const isEmpty = !content || content.trim() ==='';
+ const cls = COLOR_CLASSES[color];
 
  return (
  <motion.div
@@ -67,16 +83,14 @@ export function RealtimeSOAPPanel({ transcript, isActive}: RealtimeSOAPPanelProp
  >
  <Card className={cn(
 "border-l-4 transition-all duration-300",
- isEmpty ?"border-l-gray-300 bg-gray-50/50" : `border-l-${color}-500`
+ isEmpty ?"border-l-gray-300 bg-gray-50/50" : cls.border
  )}>
  <CardHeader className="pb-3">
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-3">
  <div className={cn(
 "h-10 w-10 rounded-lg flex items-center justify-center shadow-sm",
- isEmpty
- ?"bg-gray-200 text-gray-400"
- : `bg-gradient-to-br from-${color}-500 to-${color}-600 text-white`
+ isEmpty ?"bg-gray-200 text-gray-400" : cls.gradient
  )}>
  {isEmpty ? (
  <Clock className="h-5 w-5" />
@@ -88,7 +102,7 @@ export function RealtimeSOAPPanel({ transcript, isActive}: RealtimeSOAPPanelProp
  <CardTitle className="text-lg font-bold">
  <span className={cn(
 "text-2xl font-black mr-2",
- isEmpty ?"text-gray-400" : `text-${color}-600`
+ isEmpty ?"text-gray-400" : cls.letter
  )}>
  {letter}
  </span>
@@ -100,7 +114,7 @@ export function RealtimeSOAPPanel({ transcript, isActive}: RealtimeSOAPPanelProp
  </div>
  </div>
  {!isEmpty && (
- <Badge variant="outline" className={`bg-${color}-50 text-${color}-700 border-${color}-200`}>
+ <Badge variant="outline" className={cls.badge}>
  <CheckCircle2 className="h-3 w-3 mr-1" />
  Ativo
  </Badge>
@@ -115,10 +129,9 @@ export function RealtimeSOAPPanel({ transcript, isActive}: RealtimeSOAPPanelProp
  </div>
  ) : (
  <div className="prose prose-sm max-w-none">
- <div
- className="text-gray-700 leading-relaxed whitespace-pre-line"
- dangerouslySetInnerHTML={{ __html: content.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}}
- />
+ <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+ {renderBold(content)}
+ </div>
  </div>
  )}
  </CardContent>

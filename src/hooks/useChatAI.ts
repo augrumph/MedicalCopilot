@@ -6,14 +6,15 @@
 import { useState, useCallback } from 'react';
 import { callGemini } from '../services/gemini';
 import type { AIInsight } from '@/types/transcription.types';
-
-
+import type { Protocol, ProtocolNode } from '@/stores/protocolsStore';
 
 interface UseChatAIProps {
     transcript: string;
     insights: AIInsight[];
     patientName?: string;
     patientAge?: number;
+    activeProtocol?: Protocol | null;
+    protocolNodes?: ProtocolNode[];
 }
 
 interface ChatMessage {
@@ -22,7 +23,14 @@ interface ChatMessage {
     timestamp: number;
 }
 
-export function useChatAI({ transcript, insights, patientName, patientAge }: UseChatAIProps) {
+export function useChatAI({
+    transcript,
+    insights,
+    patientName,
+    patientAge,
+    activeProtocol,
+    protocolNodes
+}: UseChatAIProps) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
@@ -38,7 +46,7 @@ export function useChatAI({ transcript, insights, patientName, patientAge }: Use
         setError(null);
 
         try {
-            console.log('🤖 Enviando pergunta para IA:', question);
+            // console.log('🤖 Enviando pergunta para IA:', question);
 
             // Build comprehensive context
             const contextParts: string[] = [];
@@ -55,6 +63,16 @@ export function useChatAI({ transcript, insights, patientName, patientAge }: Use
             if (transcript && transcript.trim()) {
                 contextParts.push(`**TRANSCRIÇÃO DA CONSULTA:**`);
                 contextParts.push(transcript);
+                contextParts.push('');
+            }
+
+            // Active Protocol Context (Knowledge Base)
+            if (activeProtocol && protocolNodes && protocolNodes.length > 0) {
+                contextParts.push(`**PROTOCOLO CLÍNICO ATIVO (CONHECIMENTO ESPECIALIZADO):**`);
+                contextParts.push(`Título: ${activeProtocol.title}`);
+                contextParts.push(`Especialidade: ${activeProtocol.specialty}`);
+                contextParts.push(`Estrutura do Protocolo (JSON):`);
+                contextParts.push(JSON.stringify(protocolNodes, null, 2));
                 contextParts.push('');
             }
 
@@ -115,7 +133,7 @@ Sua função é apoiar o médico com informações baseadas em evidências (Evid
                 }
             );
 
-            console.log('✅ Resposta da IA recebida:', text.substring(0, 100) + '...');
+            // console.log('✅ Resposta da IA recebida:', text.substring(0, 100) + '...');
 
             // Add to conversation history
             setConversationHistory(prev => [
@@ -137,7 +155,7 @@ Sua função é apoiar o médico com informações baseadas em evidências (Evid
 
     const clearHistory = useCallback(() => {
         setConversationHistory([]);
-        console.log('🗑️ Histórico de conversa limpo');
+        // console.log('🗑️ Histórico de conversa limpo');
     }, []);
 
     return {

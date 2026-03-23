@@ -23,14 +23,14 @@ const BigButton: React.FC<BigButtonProps> = ({
  
  const variantClasses = {
  primary: disabled || loading
- ?'bg-[#283618]/50 text-white cursor-not-allowed'
- :'bg-[#283618] text-white #1e2914] active:scale-95',
+ ?'bg-[#682bd7]/50 text-white cursor-not-allowed'
+ :'bg-[#682bd7] text-white #4a1fa0] active:scale-95',
  accent: disabled || loading
- ?'bg-[#B7B7A4]/50 text-[#283618] cursor-not-allowed'
- :'bg-[#B7B7A4] text-[#283618] #a8a894] active:scale-95',
+ ?'bg-[#e6ddd6]/50 text-[#682bd7] cursor-not-allowed'
+ :'bg-[#e6ddd6] text-[#682bd7] #d4cec8] active:scale-95',
  secondary: disabled || loading
- ?'bg-[#D4D4D4]/50 text-[#283618] cursor-not-allowed'
- :'bg-[#D4D4D4] text-[#283618] #c4c4c4] active:scale-95'
+ ?'bg-[#e6ddd6]/50 text-[#682bd7] cursor-not-allowed'
+ :'bg-[#e6ddd6] text-[#682bd7] #ddd6d0] active:scale-95'
 };
 
  return (

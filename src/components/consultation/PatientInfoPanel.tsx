@@ -18,7 +18,7 @@ export function PatientInfoPanel({ patient}: PatientInfoPanelProps) {
  <div className="flex items-center gap-4">
  <Avatar className="h-16 w-16 border-2 border-primary/20">
  <AvatarImage src={getPatientAvatar(patient.name)} alt={patient.name} className="object-cover" />
- <AvatarFallback className="bg-[#283618] text-white text-xl font-bold">
+ <AvatarFallback className="bg-[#682bd7] text-white text-xl font-bold">
  {patient.name.charAt(0).toUpperCase()}
  </AvatarFallback>
  </Avatar>

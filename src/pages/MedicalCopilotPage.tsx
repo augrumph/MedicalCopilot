@@ -33,7 +33,7 @@ export function MedicalCopilotPage() {
     const [triageInput, setTriageInput] = useState<HTMLInputElement | null>(null);
     const [examsInput, setExamsInput] = useState<HTMLInputElement | null>(null);
 
-    const { analyzeImages, analysis, progress, error, reset } = useTriageAnalysis();
+    const { analyzeImages, analysis, progress, stage, error, reset } = useTriageAnalysis();
 
     useEffect(() => {
         let interval: ReturnType<typeof setInterval>;
@@ -49,20 +49,47 @@ export function MedicalCopilotPage() {
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     };
 
+    const MAX_EXAM_FILES    = 10;
+    const MAX_FILE_SIZE_MB  = 20;
+
     const handleTriageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            setTriageFile(file);
-            setTriagePreview(URL.createObjectURL(file));
+        if (!file) return;
+        if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+            alert(`Arquivo muito grande. Máximo ${MAX_FILE_SIZE_MB}MB.`);
+            return;
         }
+        // Revoke previous preview URL before replacing
+        setTriagePreview(prev => {
+            if (prev) URL.revokeObjectURL(prev);
+            return URL.createObjectURL(file);
+        });
+        setTriageFile(file);
     }, []);
 
     const handleExamsSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
-        setExamsFiles(prev => [...prev, ...files]);
-        setExamsPreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
-        // Reset input so same files can be re-added if needed
+
+        const oversized = files.find(f => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
+        if (oversized) {
+            alert(`"${oversized.name}" excede ${MAX_FILE_SIZE_MB}MB.`);
+            e.target.value = '';
+            return;
+        }
+
+        setExamsFiles(prev => {
+            const combined = [...prev, ...files];
+            if (combined.length > MAX_EXAM_FILES) {
+                alert(`Máximo de ${MAX_EXAM_FILES} exames por análise.`);
+                return prev;
+            }
+            return combined;
+        });
+        setExamsPreviews(prev => {
+            const combined = [...prev, ...files.map(f => URL.createObjectURL(f))];
+            return combined.slice(0, MAX_EXAM_FILES);
+        });
         e.target.value = '';
     }, []);
 
@@ -84,16 +111,16 @@ export function MedicalCopilotPage() {
     const handleReset = useCallback(() => {
         setScreen('capture');
         setTriageFile(null);
-        setTriagePreview(null);
+        setTriagePreview(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+        setExamsPreviews(prev => { prev.forEach(url => URL.revokeObjectURL(url)); return []; });
         setExamsFiles([]);
-        setExamsPreviews([]);
         setTimer(0);
         setIsRecording(false);
         reset();
     }, [reset]);
 
     return (
-        <AppLayout title="Copiloto Médico" description="Análise inteligente de triagem">
+        <AppLayout>
             {screen === 'capture' && (
                 <CaptureScreen
                     triagePreview={triagePreview}
@@ -111,7 +138,7 @@ export function MedicalCopilotPage() {
                 />
             )}
             {screen === 'processing' && (
-                <ProcessingScreen progress={progress} />
+                <ProcessingScreen progress={progress} stage={stage} />
             )}
             {screen === 'copilot' && analysis && (
                 <CopilotPanel
@@ -175,15 +202,14 @@ function CaptureScreen({
     return (
         <div className="min-h-full space-y-4 md:space-y-6 pb-4 md:pb-0">
 
-            {/* Hero Card — mesmo padrão do card "Paciente Atual" no Dashboard */}
+            {/* Hero Card — Tactical Style */}
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-                <Card className="relative overflow-hidden rounded-xl md:rounded-2xl bg-gradient-to-br from-[#450693] via-[#8C00FF] to-[#FF3F7F] shadow-xl border-0">
-                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light" />
-                    <div className="absolute top-0 right-0 w-32 h-32 md:w-48 md:h-48 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <Card className="relative overflow-hidden rounded-xl md:rounded-2xl bg-[#1b1b1b] shadow-xl border-0">
+                    <div className="absolute top-0 right-0 w-32 h-32 md:w-48 md:h-48 bg-[#512B81]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                     <CardContent className="relative p-4 md:p-6">
-                        <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm text-[10px] font-bold tracking-wide mb-3 md:mb-4">
+                        <Badge className="bg-[#512B81] text-white border-0 text-[10px] font-bold tracking-wide mb-3 md:mb-4">
                             <Sparkles className="h-3 w-3 mr-1" />
-                            IA Vision · GPT-4o
+                            IA Vision · Gemini
                         </Badge>
                         <h1 className="text-white text-2xl md:text-3xl font-bold tracking-tight mb-1.5">
                             Copiloto Médico
@@ -227,15 +253,15 @@ function CaptureScreen({
                     <CardHeader className="pb-3 md:pb-4 px-3 sm:px-4 md:px-6 pt-3 md:pt-6">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 md:gap-3">
-                                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                    <FileText className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
+                                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center flex-shrink-0">
+                                    <FileText className="h-4 w-4 md:h-5 md:w-5 text-[#512B81]" />
                                 </div>
                                 <div>
                                     <CardTitle className="text-sm md:text-base">Ficha de Triagem</CardTitle>
                                     <CardDescription className="text-[11px] md:text-xs">Opcional · JPG, PNG, HEIC</CardDescription>
                                 </div>
                             </div>
-                            <Badge className="bg-purple-100 text-purple-700 border-0 text-[10px] font-bold">Passo 1</Badge>
+                            <Badge className="bg-slate-50 text-slate-500 border-slate-100 text-[10px] font-bold uppercase tracking-widest">Passo 1</Badge>
                         </div>
                     </CardHeader>
                     <CardContent className="px-3 sm:px-4 md:px-6 pb-3 md:pb-6">
@@ -244,8 +270,8 @@ function CaptureScreen({
                                 onClick={onTriageClick}
                                 className="group w-full aspect-[4/3] sm:aspect-[16/9] rounded-lg md:rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 hover:border-purple-400/60 hover:bg-purple-50/50 active:scale-[0.99] transition-all duration-200 flex flex-col items-center justify-center gap-3 touch-manipulation"
                             >
-                                <div className="h-14 w-14 md:h-16 md:w-16 rounded-xl bg-white border border-gray-200 shadow-sm group-hover:shadow-md group-hover:border-purple-200 flex items-center justify-center transition-all duration-200">
-                                    <Camera className="h-6 w-6 md:h-7 md:w-7 text-purple-600" />
+                                <div className="h-14 w-14 md:h-16 md:w-16 rounded-xl bg-white border border-slate-200 shadow-sm group-hover:shadow-md group-hover:border-[#512B81]/20 flex items-center justify-center transition-all duration-200">
+                                    <Camera className="h-6 w-6 md:h-7 md:w-7 text-[#512B81]" />
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm font-semibold text-gray-700 group-hover:text-purple-700 transition-colors">
@@ -294,8 +320,8 @@ function CaptureScreen({
                     <CardHeader className="pb-3 md:pb-4 px-3 sm:px-4 md:px-6 pt-3 md:pt-6">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 md:gap-3">
-                                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                    <Activity className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
+                                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center flex-shrink-0">
+                                    <Activity className="h-4 w-4 md:h-5 md:w-5 text-[#512B81]" />
                                 </div>
                                 <div>
                                     <CardTitle className="text-sm md:text-base">Exames Prévios</CardTitle>
@@ -304,7 +330,7 @@ function CaptureScreen({
                                     </CardDescription>
                                 </div>
                             </div>
-                            <Badge className="bg-blue-100 text-blue-700 border-0 text-[10px] font-bold">
+                            <Badge className="bg-slate-50 text-slate-500 border-slate-100 text-[10px] font-bold uppercase tracking-widest">
                                 {examsPreviews.length > 0 ? `${examsPreviews.length} imagem(ns)` : 'Passo 2'}
                             </Badge>
                         </div>
@@ -339,8 +365,8 @@ function CaptureScreen({
                                     : "py-5 md:py-6 border-gray-200 bg-gray-50 hover:border-blue-400/60 hover:bg-blue-50/50"
                             )}
                         >
-                            <div className="h-8 w-8 rounded-lg bg-white border border-gray-200 shadow-sm group-hover:border-blue-200 flex items-center justify-center transition-colors">
-                                <Upload className="h-4 w-4 text-blue-500" />
+                            <div className="h-8 w-8 rounded-lg bg-white border border-slate-200 shadow-sm group-hover:border-[#512B81]/20 flex items-center justify-center transition-colors">
+                                <Upload className="h-4 w-4 text-[#512B81]" />
                             </div>
                             <span className="text-sm font-semibold text-gray-500 group-hover:text-blue-600 transition-colors">
                                 {examsPreviews.length > 0 ? 'Adicionar mais exames' : 'Adicionar Exames'}
@@ -363,11 +389,11 @@ function CaptureScreen({
                     className={cn(
                         "w-full h-11 sm:h-12 font-bold text-sm md:text-base active:scale-[0.98] touch-manipulation",
                         canProcess
-                            ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all"
-                            : "bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100"
+                            ? "bg-[#512B81] hover:bg-[#512B81]/90 text-white shadow-lg hover:shadow-xl transition-all"
+                            : "bg-slate-100 text-slate-400 cursor-not-allowed hover:bg-slate-100"
                     )}
                 >
-                    <Zap className={cn("h-4 w-4 mr-2", canProcess && "text-yellow-300")} />
+                    <Zap className={cn("h-4 w-4 mr-2", canProcess && "text-yellow-400")} />
                     Processar e Analisar com IA
                 </Button>
                 {!canProcess && (
@@ -383,17 +409,17 @@ function CaptureScreen({
 // ============================================
 // SCREEN 2: PROCESSING
 // ============================================
-function ProcessingScreen({ progress }: { progress: number }) {
+function ProcessingScreen({ progress, stage }: { progress: number; stage: string }) {
     const steps = [
-        { text: 'Lendo a imagem...', threshold: 15 },
-        { text: 'Extraindo dados via OCR...', threshold: 35 },
-        { text: 'Gerando análise clínica...', threshold: 60 },
-        { text: 'Montando protocolos...', threshold: 82 },
-        { text: 'Finalizando...', threshold: 96 },
+        { text: 'Preparando imagens...', threshold: 15 },
+        { text: 'Enviando para análise...', threshold: 35 },
+        { text: 'Lendo ficha de triagem (OCR)...', threshold: 55 },
+        { text: 'Analisando exames clínicos...', threshold: 80 },
+        { text: 'Gerando painel de decisão...', threshold: 96 },
     ];
 
     const currentStep = steps.findIndex(s => progress <= s.threshold);
-    const activeLabel = currentStep >= 0 ? steps[currentStep].text : 'Concluído!';
+    const activeLabel = stage || (currentStep >= 0 ? steps[currentStep].text : 'Concluído!');
 
     return (
         <div className="min-h-full flex flex-col items-center justify-center">
@@ -402,7 +428,7 @@ function ProcessingScreen({ progress }: { progress: number }) {
                 animate={{ opacity: 1, scale: 1 }}
                 className="w-full max-w-sm"
             >
-                <Card className="relative overflow-hidden rounded-xl md:rounded-2xl bg-gradient-to-br from-[#450693] via-[#8C00FF] to-[#FF3F7F] shadow-xl border-0">
+                <Card className="relative overflow-hidden rounded-xl md:rounded-2xl bg-gradient-to-br from-[#4a1fa0] via-[#682bd7] to-[#bd2e95] shadow-xl border-0">
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light" />
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                     <CardContent className="relative p-6 text-center">
@@ -420,7 +446,7 @@ function ProcessingScreen({ progress }: { progress: number }) {
                         <div className="w-full mb-2">
                             <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-white rounded-full transition-all duration-700 ease-out"
+                                    className="h-full bg-[#512B81] rounded-full transition-all duration-700 ease-out"
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
@@ -444,12 +470,12 @@ function ProcessingScreen({ progress }: { progress: number }) {
                                     >
                                         <div className={cn(
                                             "h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all",
-                                            isDone ? "bg-green-400" : isActive ? "bg-white/20 border border-white/40" : "bg-white/10"
+                                            isDone ? "bg-emerald-500" : isActive ? "bg-[#512B81]/40 border border-[#512B81]/20" : "bg-white/10"
                                         )}>
                                             {isDone
                                                 ? <Check className="h-3 w-3 text-white" />
                                                 : isActive
-                                                    ? <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                                                    ? <div className="h-1.5 w-1.5 rounded-full bg-[#512B81] animate-pulse" />
                                                     : null
                                             }
                                         </div>
@@ -502,7 +528,7 @@ function SummaryScreen({ analysis, timer, formatTime, onReset }: SummaryScreenPr
             {/* Success Stats pills — mesmo estilo do Dashboard */}
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-3">
-                    <div className="flex items-center gap-2.5 md:gap-3 bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-xl px-3 py-2.5 md:px-5 md:py-3 shadow-lg shadow-emerald-500/25 flex-1">
+                    <div className="flex items-center gap-2.5 md:gap-3 bg-emerald-500 text-white rounded-xl px-3 py-2.5 md:px-5 md:py-3 shadow-lg shadow-emerald-500/10 flex-1">
                         <div className="flex items-center justify-center h-7 w-7 md:h-8 md:w-8 bg-white/20 rounded-lg flex-shrink-0">
                             <CheckCircle className="h-4 w-4 md:h-5 md:w-5" />
                         </div>
@@ -511,13 +537,13 @@ function SummaryScreen({ analysis, timer, formatTime, onReset }: SummaryScreenPr
                             <p className="text-white/70 text-xs mt-0.5">{analysis.patientName}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2.5 md:gap-3 bg-gray-900 text-white rounded-xl px-3 py-2.5 md:px-5 md:py-3 shadow-lg shadow-gray-900/20 flex-shrink-0">
-                        <div className="flex items-center justify-center h-7 w-7 md:h-8 md:w-8 bg-white/20 rounded-lg flex-shrink-0">
-                            <Clock className="h-4 w-4 md:h-5 md:w-5" />
+                    <div className="flex items-center gap-2.5 md:gap-3 bg-[#1b1b1b] text-white rounded-xl px-3 py-2.5 md:px-5 md:py-3 shadow-lg shadow-black/10 flex-shrink-0">
+                        <div className="flex items-center justify-center h-7 w-7 md:h-8 md:w-8 bg-white/10 rounded-lg flex-shrink-0">
+                            <Clock className="h-4 w-4 md:h-5 md:w-5 text-[#512B81]" />
                         </div>
                         <div className="flex items-baseline gap-1.5 md:gap-2">
                             <span className="text-xl md:text-2xl font-bold tabular-nums">{formatTime(timer)}</span>
-                            <span className="text-xs md:text-sm text-white/70 font-medium">duração</span>
+                            <span className="text-xs md:text-sm text-white/40 font-bold uppercase tracking-widest">Duração</span>
                         </div>
                     </div>
                 </div>
@@ -587,8 +613,8 @@ function SummaryScreen({ analysis, timer, formatTime, onReset }: SummaryScreenPr
                     className={cn(
                         "w-full h-11 sm:h-12 font-bold text-sm md:text-base active:scale-[0.98] touch-manipulation shadow-lg transition-all",
                         copied
-                            ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-green-500/25"
-                            : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-purple-500/25 hover:shadow-xl"
+                            ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/10"
+                            : "bg-[#1b1b1b] hover:bg-black text-white shadow-black/10 hover:shadow-xl"
                     )}
                 >
                     {copied
@@ -597,10 +623,10 @@ function SummaryScreen({ analysis, timer, formatTime, onReset }: SummaryScreenPr
                     }
                 </Button>
                 <Button
-                    variant="outline"
+                    variant="ghost"
                     onClick={onReset}
                     size="lg"
-                    className="w-full h-10 sm:h-11 border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 touch-manipulation"
+                    className="w-full h-10 sm:h-11 text-slate-400 hover:text-[#512B81] hover:bg-slate-50 touch-manipulation font-bold uppercase tracking-widest text-[10px]"
                 >
                     <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
                     Nova Análise

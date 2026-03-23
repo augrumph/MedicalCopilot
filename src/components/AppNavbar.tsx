@@ -1,100 +1,119 @@
-import { memo} from'react';
-import { Bell, Search, EyeOff, Eye} from'lucide-react';
-import { Button} from'@/components/ui/button';
-import { Input} from'@/components/ui/input';
-import { Badge} from'@/components/ui/badge';
-import { SidebarTrigger} from'@/components/ui/sidebar';
-import { Separator} from'@/components/ui/separator';
-import { useAppStore} from'@/stores/appStore';
+import { memo } from 'react';
+import { Bell, Search, EyeOff, Eye } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
+import { useAppStore } from '@/stores/appStore';
+import { cn } from '@/lib/utils';
 
 interface AppNavbarProps {
- title?: string;
- description?: string;
+  title?: string;
+  description?: string;
 }
 
-export const AppNavbar = memo(function AppNavbar({ title, description}: AppNavbarProps) {
- const { privacyMode, togglePrivacyMode} = useAppStore();
+export const AppNavbar = memo(function AppNavbar({ title, description }: AppNavbarProps) {
+  const { privacyMode, togglePrivacyMode, user } = useAppStore();
 
- return (
- <div
- className="sticky top-0 z-50 flex h-16 items-center gap-4 px-4 sm:px-6 border-b border-gray-200"
- style={{
- backgroundColor:'rgba(249, 250, 251, 0.8)',
- backdropFilter:'blur(12px)',
- WebkitBackdropFilter:'blur(12px)',
-}}
- role="banner"
- aria-label="Barra de navegação principal"
- >
- <div className="flex items-center gap-3">
- <SidebarTrigger
- className="-ml-1 h-8 w-8 text-gray-700"
- aria-label="Alternar menu lateral"
- />
- <Separator orientation="vertical" className="h-6 bg-gray-200" />
- </div>
+  return (
+    <header
+      className="sticky top-0 z-40 flex h-16 w-full items-center gap-4 px-4 sm:px-6 border-b border-slate-100 transition-all"
+      style={{
+        background: '#FFFFFF',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <SidebarTrigger
+          className="-ml-1 h-9 w-9 text-slate-400 hover:text-[#512B81] hover:bg-slate-50 transition-all rounded-lg"
+          aria-label="Alternar menu lateral"
+        />
+        <Separator orientation="vertical" className="h-4 bg-slate-200" />
+      </div>
 
- <div className="flex flex-1 items-center gap-4">
- {title ? (
- <div className="flex flex-col">
- <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight">{title}</h1>
- {description && (
- <p className="text-xs sm:text-sm text-muted-foreground">{description}</p>
- )}
- </div>
- ) : (
- <div className="relative flex-1 max-w-md">
- <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
- <Input
- type="search"
- placeholder="Buscar pacientes, consultas..."
- className="pl-9 h-9 sm:h-10 bg-gray-100 border-gray-300 text-gray-900 placeholder:text-gray-500 focus-visible:bg-white focus-visible:border-gray-400 transition-colors"
- aria-label="Campo de busca"
- />
- </div>
- )}
- </div>
+      <div className="flex flex-1 items-center gap-4">
+        {title ? (
+          <div className="flex flex-col">
+            <h1 className="text-sm sm:text-base font-bold text-[#1b1b1b] tracking-tight leading-none uppercase">
+              {title}
+            </h1>
+            {description && (
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1 sm:block hidden">
+                {description}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="relative flex-1 max-w-md group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#512B81] transition-colors" />
+            <Input
+              type="search"
+              placeholder="Pesquisar..."
+              className="pl-9 h-10 bg-white border-slate-200 text-[#1b1b1b] placeholder:text-slate-400 focus-visible:border-[#512B81]/40 focus-visible:ring-[#512B81]/10 transition-all rounded-xl shadow-none font-medium"
+            />
+          </div>
+        )}
+      </div>
 
- <div className="flex items-center gap-2">
- {/* Privacy Mode Toggle */}
- <Button
- variant="ghost"
- size="icon"
- className={`relative h-9 w-9 sm:h-10 sm:w-10 transition-colors ${privacyMode ?'bg-purple-100 text-purple-700' :''
-}`}
- onClick={togglePrivacyMode}
- aria-label={privacyMode ?'Desativar Modo Privacidade' :'Ativar Modo Privacidade'}
- title={privacyMode ?'Modo Privacidade Ativo' :'Ativar Modo Privacidade'}
- >
- {privacyMode ? (
- <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />
- ) : (
- <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700" />
- )}
- </Button>
+      <div className="flex items-center gap-2 sm:gap-4">
+        {/* Pro Badge */}
+        {/* Pro Badge - Simple & Sophisticated */}
+        {/* Pro Badge - Sharp and Technical */}
+        <div className="hidden md:block">
+          <Badge className="bg-[#1b1b1b] text-white border-0 py-2 px-4 rounded-full flex items-center gap-2 shadow-sm group">
+            <div className="h-2 w-2 rounded-full bg-[#512B81] group-hover:scale-125 transition-transform" />
+            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-white">Medical <span className="text-[#512B81]">Pro</span></span>
+          </Badge>
+        </div>
 
- <Button
- variant="ghost"
- size="icon"
- className="relative h-9 w-9 sm:h-10 sm:w-10 transition-colors"
- onClick={() => {
- // Disparar evento para abrir notificações
- const event = new CustomEvent('openNotifications', { detail: {}});
- window.dispatchEvent(event);
-}}
- aria-label="Abrir notificações"
- aria-pressed={false}
- >
- <span className="sr-only">Notificações</span>
- <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700" />
- <Badge
- className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-[10px] flex items-center justify-center shadow-md bg-[#FF3F7F] text-white border-0 font-semibold"
- aria-label="3 notificações não lidas"
- >
- 3
- </Badge>
- </Button>
- </div>
- </div>
- );
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Privacy Mode Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-9 w-9 sm:h-10 sm:w-10 rounded-xl transition-all",
+              privacyMode ? "bg-[#512B81]/10 text-[#512B81]" : "text-slate-400 hover:bg-slate-50"
+            )}
+            onClick={togglePrivacyMode}
+          >
+            {privacyMode ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-xl text-slate-400 hover:text-[#512B81] hover:bg-slate-50 transition-all"
+            onClick={() => {
+              const event = new CustomEvent('openNotifications');
+              window.dispatchEvent(event);
+            }}
+          >
+            <Bell className="h-4 w-4" />
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-[#F61115] border-2 border-white" />
+          </Button>
+        </div>
+
+        <Separator orientation="vertical" className="h-8 bg-slate-100 mx-1 sm:block hidden" />
+
+        {/* User Mini Profile */}
+        <div className="flex items-center gap-3 pl-1 sm:block hidden">
+          <div className="text-right">
+            <p className="text-[11px] font-semibold text-slate-900 leading-none">
+              {user?.name?.split(' ')[0] || 'Doutor'}
+            </p>
+            <p className="text-[9px] font-medium text-slate-500 uppercase tracking-wide mt-1">
+              CRM-SP 12345
+            </p>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
 });

@@ -45,7 +45,8 @@
       "Bash(rm:*)",
       "Bash(npx ai-elements@latest add message-thread)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:registry.ai-sdk.dev)"
+      "WebFetch(domain:registry.ai-sdk.dev)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

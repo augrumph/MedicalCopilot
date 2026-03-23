@@ -5,8 +5,20 @@ import { generateMockPatients, generateMockConsultations } from '@/lib/mockData'
 import type { AppContext } from '@/lib/contextConfig';
 
 interface User {
+  id: string;
   name: string;
   email: string;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  birthDate?: string;
+  cpf?: string;
+  city?: string;
+  state?: string;
+  crm?: string;
+  crmState?: string;
+  isCrmVerified: boolean;
+  acceptedTermsAt?: string;
 }
 
 interface AppState {
@@ -17,8 +29,10 @@ interface AppState {
   // Authentication
   isAuthenticated: boolean;
   user: User | null;
-  login: (email: string, password: string) => void;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  acceptTerms: () => Promise<void>;
+  setUser: (user: User) => void;
 
   // Patients
   patients: Patient[];
@@ -34,6 +48,7 @@ interface AppState {
   selectedConsultation: Consultation | null;
   setSelectedConsultation: (consultation: Consultation | null) => void;
   startConsultation: (patient: Patient) => void;
+  startEmergencyConsultation: () => void;
   loadConsultation: (consultationId: string) => void;
   updateTranscript: (text: string) => void;
   updateAISuggestions: (suggestions: AISuggestions) => void;
@@ -59,6 +74,10 @@ interface AppState {
   setDoctorName: (name: string) => void;
   doctorSpecialty: string;
   setDoctorSpecialty: (specialty: string) => void;
+  doctorCRM: string;
+  setDoctorCRM: (crm: string) => void;
+  doctorUF: string;
+  setDoctorUF: (uf: string) => void;
   clinicName: string;
   setClinicName: (name: string) => void;
   clinicAddress: string;
@@ -69,10 +88,26 @@ interface AppState {
   setClinicPhone: (phone: string) => void;
   clinicEmail: string;
   setClinicEmail: (email: string) => void;
+  
+  // AI Settings
   aiDetailLevel: 'short' | 'medium' | 'long';
   setAiDetailLevel: (level: 'short' | 'medium' | 'long') => void;
   language: 'pt' | 'en';
   setLanguage: (lang: 'pt' | 'en') => void;
+  aiSuggestions: boolean;
+  setAiSuggestions: (enabled: boolean) => void;
+  aiSimilarityAnalysis: boolean;
+  setAiSimilarityAnalysis: (enabled: boolean) => void;
+  aiInteractionAlerts: boolean;
+  setAiInteractionAlerts: (enabled: boolean) => void;
+
+  // Prescription Settings
+  prescriptionValidityDays: number;
+  setPrescriptionValidityDays: (days: number) => void;
+  antibioticValidityDays: number;
+  setAntibioticValidityDays: (days: number) => void;
+  defaultPrescriptionInstructions: string;
+  setDefaultPrescriptionInstructions: (instructions: string) => void;
 
   // Privacy Mode
   privacyMode: boolean;
@@ -81,11 +116,19 @@ interface AppState {
   // LGPD: Auto-Delete Audio
   autoDeleteAudio: boolean;
   setAutoDeleteAudio: (value: boolean) => void;
+
+  // Shift Management
+  shiftStatus: 'active' | 'inactive';
+  shiftStartedAt: string | null;
+  activeShiftId: string | null;
+  activeSessionId: string | null;
+  startShift: (shiftId: string) => Promise<void>;
+  endShift: () => Promise<void>;
 }
 
-// Gerar dados mockados realistas
-const mockPatients = generateMockPatients(100);
-const mockConsultations = generateMockConsultations(mockPatients, 100);
+// No mock data generated in production
+const mockPatients: Patient[] = [];
+const mockConsultations: Consultation[] = [];
 
 // Cache para evitar recriação
 const cachedMockPatients = [...mockPatients];
@@ -101,32 +144,83 @@ export const useAppStore = create<AppState>()(
       // Authentication
       isAuthenticated: false,
       user: null,
-      login: (email: string, password: string) => {
-        // More secure mock authentication
+      login: async (email: string, password: string) => {
         if (!email || !password) {
-          console.error("Email and password are required");
-          return;
+          throw new Error("Email e senha são obrigatórios");
         }
 
-        // In a real app, this would verify credentials via API
-        // This is still a mock, but with better validation
-        const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        const isValidPassword = password.length >= 6;
+        const API = import.meta.env.VITE_BACKEND_URL || 'https://api.medicalcopilot.com.br';
 
-        if (!isValidEmail || !isValidPassword) {
-          console.error("Invalid email or password");
-          return;
-        }
+        try {
+          const response = await fetch(`${API}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ email, password }),
+          });
 
-        set({
-          isAuthenticated: true,
-          user: {
-            name: 'Dr. Luzzi',
-            email: email
+          const data = await response.json();
+
+          if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Falha na autenticação');
           }
-        });
+
+          set({
+            isAuthenticated: true,
+            user: {
+              id:            data.user.id,
+              name:          data.user.name || data.user.fullName || data.user.firstName,
+              email:         data.user.email,
+              fullName:      data.user.fullName,
+              firstName:     data.user.firstName,
+              lastName:      data.user.lastName,
+              birthDate:     data.user.birthDate,
+              cpf:           data.user.cpf,
+              city:          data.user.city,
+              state:         data.user.state,
+              crm:           data.user.crm,
+              crmState:      data.user.crmState,
+              isCrmVerified: data.user.isCrmVerified ?? false,
+              acceptedTermsAt: data.user.acceptedTermsAt,
+            },
+          });
+        } catch (error: any) {
+          throw error;
+        }
       },
-      logout: () => set({ isAuthenticated: false, user: null }),
+      setUser: (user: User) => set({ user }),
+      acceptTerms: async () => {
+        const API = import.meta.env.VITE_BACKEND_URL || 'https://api.medicalcopilot.com.br';
+        try {
+          const res = await fetch(`${API}/api/auth/accept-terms`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+          const data = await res.json();
+          if (data.success) {
+            const { user } = get();
+            if (user) {
+              set({ user: { ...user, acceptedTermsAt: data.acceptedAt } });
+            }
+          }
+        } catch (error) {
+          console.error('Failed to accept terms in backend', error);
+        }
+      },
+      logout: async () => {
+        const API = import.meta.env.VITE_BACKEND_URL || 'https://api.medicalcopilot.com.br';
+        try {
+          await fetch(`${API}/api/auth/logout`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+        } catch {
+          // ignore logout network errors — local state is cleared regardless
+        } finally {
+          set({ isAuthenticated: false, user: null });
+          localStorage.removeItem('medical-copilot-storage');
+        }
+      },
 
       // Patients
       patients: cachedMockPatients,
@@ -151,6 +245,7 @@ export const useAppStore = create<AppState>()(
       setSelectedConsultation: (consultation) => set({ selectedConsultation: consultation }),
 
       startConsultation: (patient) => {
+        // console.log('🚀 Starting consultation for patient:', patient.name);
         const consultation: Consultation = {
           id: Date.now().toString(),
           patientId: patient.id,
@@ -162,6 +257,36 @@ export const useAppStore = create<AppState>()(
           currentConsultation: consultation,
           selectedPatient: patient,
         });
+        // console.log('✅ Store updated: selectedPatient set');
+      },
+
+      startEmergencyConsultation: () => {
+        const timestamp = Date.now();
+        // console.log('🚨 Starting emergency consultation...');
+        const emergencyPatient: Patient = {
+          id: `emerg-${timestamp}`,
+          name: `Paciente Emergência #${timestamp.toString().slice(-4)}`,
+          age: 0,
+          gender: 'nao_informado',
+          allergies: [],
+          medications: [],
+          mainConditions: [],
+        };
+
+        const consultation: Consultation = {
+          id: timestamp.toString(),
+          patientId: emergencyPatient.id,
+          startedAt: new Date().toISOString(),
+          status: 'in_progress',
+          transcript: '',
+        };
+
+        set((state) => ({
+          patients: [...state.patients, emergencyPatient],
+          currentConsultation: consultation,
+          selectedPatient: emergencyPatient,
+        }));
+        // console.log('✅ Emergency consultation state set');
       },
 
       loadConsultation: (consultationId) => {
@@ -248,7 +373,7 @@ export const useAppStore = create<AppState>()(
         return {
           currentConsultation: {
             ...state.currentConsultation,
-            patientSummary: summary as any, // Temporary fix - the function needs to be updated to handle PatientSummary type
+            patientSummary: { explanation: summary, whatToDo: [], whenToReturn: [] },
           }
         };
       }),
@@ -269,7 +394,9 @@ export const useAppStore = create<AppState>()(
 
         // Generate unique prescription ID and verification code
         const prescriptionId = `RX-${new Date().getFullYear()}-${String(Date.now()).slice(-8).padStart(8, '0')}`;
-        const verificationCode = `R${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        const randomSegment = () => Array.from(crypto.getRandomValues(new Uint8Array(3)))
+          .map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 4).toUpperCase();
+        const verificationCode = `R${randomSegment()}-${randomSegment()}-${randomSegment()}-${randomSegment()}`;
 
         // Generate hash of content (mock for now, in real app would hash the actual prescription content)
         const contentHash = `hash-${Date.now()}`;
@@ -359,6 +486,10 @@ export const useAppStore = create<AppState>()(
       setDoctorName: (name) => set({ doctorName: name }),
       doctorSpecialty: 'Clínico Geral',
       setDoctorSpecialty: (specialty) => set({ doctorSpecialty: specialty }),
+      doctorCRM: '123456',
+      setDoctorCRM: (crm) => set({ doctorCRM: crm }),
+      doctorUF: 'SP',
+      setDoctorUF: (uf) => set({ doctorUF: uf }),
       clinicName: '',
       setClinicName: (name) => set({ clinicName: name }),
       clinicAddress: '',
@@ -373,6 +504,20 @@ export const useAppStore = create<AppState>()(
       setAiDetailLevel: (level) => set({ aiDetailLevel: level }),
       language: 'pt',
       setLanguage: (lang) => set({ language: lang }),
+      aiSuggestions: true,
+      setAiSuggestions: (enabled) => set({ aiSuggestions: enabled }),
+      aiSimilarityAnalysis: true,
+      setAiSimilarityAnalysis: (enabled) => set({ aiSimilarityAnalysis: enabled }),
+      aiInteractionAlerts: true,
+      setAiInteractionAlerts: (enabled) => set({ aiInteractionAlerts: enabled }),
+
+      // Prescription Settings
+      prescriptionValidityDays: 30,
+      setPrescriptionValidityDays: (days) => set({ prescriptionValidityDays: days }),
+      antibioticValidityDays: 10,
+      setAntibioticValidityDays: (days) => set({ antibioticValidityDays: days }),
+      defaultPrescriptionInstructions: 'Tomar os medicamentos nos horários indicados. Beber bastante água. Fazer repouso relativo. Em caso de efeitos colaterais, retornar para avaliação médica.',
+      setDefaultPrescriptionInstructions: (instructions) => set({ defaultPrescriptionInstructions: instructions }),
 
       // Privacy Mode
       privacyMode: false,
@@ -381,21 +526,93 @@ export const useAppStore = create<AppState>()(
       // LGPD: Auto-Delete Audio
       autoDeleteAudio: true, // Default: enabled for privacy
       setAutoDeleteAudio: (value) => set({ autoDeleteAudio: value }),
+
+      // Shift Management
+      shiftStatus: 'inactive',
+      shiftStartedAt: null,
+      activeShiftId: null,
+      activeSessionId: null,
+      startShift: async (shiftId) => {
+        const timestamp = new Date().toISOString();
+
+        // Optimistic update
+        set({ shiftStatus: 'active', shiftStartedAt: timestamp, activeShiftId: shiftId });
+
+        try {
+          const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://api.medicalcopilot.com.br'}/api/shifts/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ shiftId, metadata: { startedAt: timestamp } })
+          });
+          const result = await res.json();
+          if (result.success) {
+            set({
+              activeSessionId: result.data.id,
+              shiftStartedAt: result.data.startTime,
+            });
+          } else {
+            // Rollback optimistic state — user doesn't actually have access
+            set({ shiftStatus: 'inactive', shiftStartedAt: null, activeShiftId: null, activeSessionId: null });
+            // Bubble up error code so callers can react (e.g. show buy modal)
+            throw new Error(result.error ?? 'SHIFT_START_FAILED');
+          }
+        } catch (error) {
+          // Always roll back optimistic state on any failure — leaving a phantom "active"
+          // shift is worse than making the user tap again.
+          set({ shiftStatus: 'inactive', shiftStartedAt: null, activeShiftId: null, activeSessionId: null });
+          throw error;
+        }
+      },
+      endShift: async () => {
+        const { activeSessionId } = get();
+        if (!activeSessionId) {
+          set({ shiftStatus: 'inactive', shiftStartedAt: null, activeShiftId: null, activeSessionId: null });
+          return;
+        }
+        try {
+          await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://api.medicalcopilot.com.br'}/api/shifts/${activeSessionId}/end`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ metrics: {} })
+          });
+          set({ shiftStatus: 'inactive', shiftStartedAt: null, activeShiftId: null, activeSessionId: null });
+        } catch {
+          // ignore network errors — local shift state is cleared regardless
+        }
+      },
     }),
     {
-      name: 'medical-copilot-storage', // nome único para o localStorage
+      name: 'medical-copilot-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         // Apenas persistir auth, user, theme e appContext (NÃO persistir patients nem consultations mockadas)
         appContext: state.appContext,
         isAuthenticated: state.isAuthenticated,
         user: state.user,
+        doctorName: state.doctorName,
+        doctorSpecialty: state.doctorSpecialty,
+        doctorCRM: state.doctorCRM,
+        doctorUF: state.doctorUF,
         clinicName: state.clinicName,
         clinicAddress: state.clinicAddress,
         clinicLocation: state.clinicLocation,
         clinicPhone: state.clinicPhone,
         clinicEmail: state.clinicEmail,
+        aiDetailLevel: state.aiDetailLevel,
+        language: state.language,
+        aiSuggestions: state.aiSuggestions,
+        aiSimilarityAnalysis: state.aiSimilarityAnalysis,
+        aiInteractionAlerts: state.aiInteractionAlerts,
+        prescriptionValidityDays: state.prescriptionValidityDays,
+        antibioticValidityDays: state.antibioticValidityDays,
+        defaultPrescriptionInstructions: state.defaultPrescriptionInstructions,
         autoDeleteAudio: state.autoDeleteAudio,
+        shiftStatus: state.shiftStatus,
+        shiftStartedAt: state.shiftStartedAt,
+        activeShiftId: state.activeShiftId,
+        activeSessionId: state.activeSessionId,
       }),
     }
   )

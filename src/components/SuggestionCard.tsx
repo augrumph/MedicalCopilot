@@ -18,9 +18,9 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({
  whileTap={{ scale: 0.97}}
  transition={{ type:"spring", stiffness: 400, damping: 25}}
  onClick={onClick}
- className={`bg-[#D4D4D4] rounded-2xl p-4 cursor-pointer transition-all ${
+ className={`bg-[#e6ddd6] rounded-2xl p-4 cursor-pointer transition-all ${
  isSelected
- ?'ring-2 ring-[#283618] bg-[#283618]/10'
+ ?'ring-2 ring-[#682bd7] bg-[#682bd7]/10'
  :'hover:bg-[#c8c8c8] hover:shadow-md'
 }`}
  >

@@ -173,10 +173,10 @@ export function NotificationDialog({ isOpen, onClose}: NotificationDialogProps) 
  {/* Header */}
  <div className="flex items-center justify-between p-4 border-b border-gray-200">
  <div className="flex items-center gap-2">
- <Bell className="h-6 w-6 text-[#8C00FF]" />
+ <Bell className="h-6 w-6 text-[#682bd7]" />
  <h2 className="text-lg font-bold text-gray-900">Notificações</h2>
  {unreadCount > 0 && (
- <Badge className="bg-[#8C00FF] text-white text-xs">
+ <Badge className="bg-[#682bd7] text-white text-xs">
  {unreadCount}
  </Badge>
  )}
@@ -201,7 +201,7 @@ export function NotificationDialog({ isOpen, onClose}: NotificationDialogProps) 
  size="sm"
  className={`whitespace-nowrap ${
  activeCategory === category 
- ?'bg-[#8C00FF] text-white' 
+ ?'bg-[#682bd7] text-white' 
  :'text-gray-600'
 }`}
  onClick={() => setActiveCategory(category)}
@@ -222,7 +222,7 @@ export function NotificationDialog({ isOpen, onClose}: NotificationDialogProps) 
  variant="ghost"
  size="sm"
  onClick={markAllAsRead}
- className="text-[#8C00FF] #8C00FF] #8C00FF]/10"
+ className="text-[#682bd7] #682bd7] #682bd7]/10"
  >
  Marcar todas como lidas
  </Button>
@@ -245,7 +245,7 @@ export function NotificationDialog({ isOpen, onClose}: NotificationDialogProps) 
  initial={{ opacity: 0, y: 10}}
  animate={{ opacity: 1, y: 0}}
  className={`p-4 rounded-lg border ${getNotificationColor(notification.type)} ${
- !notification.read ?'ring-2 ring-[#8C00FF]/30' :''
+ !notification.read ?'ring-2 ring-[#682bd7]/30' :''
 } relative group transition-shadow`}
  >
  <div className="flex items-start gap-3">
@@ -253,12 +253,12 @@ export function NotificationDialog({ isOpen, onClose}: NotificationDialogProps) 
  <div className="flex-1 min-w-0">
  <div className="flex items-start justify-between gap-2">
  <h3 className={`font-semibold text-sm text-gray-900 ${
- !notification.read ?'text-[#8C00FF]' :''
+ !notification.read ?'text-[#682bd7]' :''
 }`}>
  {notification.title}
  </h3>
  {!notification.read && (
- <div className="h-2 w-2 rounded-full bg-[#8C00FF] flex-shrink-0 mt-1.5" />
+ <div className="h-2 w-2 rounded-full bg-[#682bd7] flex-shrink-0 mt-1.5" />
  )}
  </div>
  <p className="text-sm text-gray-600 mt-1 mb-2">

@@ -7,7 +7,7 @@ const LoadingDots: React.FC = () => {
  {[0, 1, 2].map((i) => (
  <motion.div
  key={i}
- className="h-3 w-3 rounded-full bg-[#283618]"
+ className="h-3 w-3 rounded-full bg-[#682bd7]"
  animate={{
  scale: [1, 1.2, 1],
  opacity: [0.5, 1, 0.5],

@@ -113,6 +113,25 @@ export const useCalendarIntegrationsStore = create<CalendarIntegrationsStore>()(
         {
             name: 'calendar-integrations-storage',
             storage: createJSONStorage(() => localStorage),
+            // Never persist OAuth access tokens — store connection status only
+            partialize: (state) => ({
+                googleCalendar: {
+                    connected: state.googleCalendar.connected,
+                    email: state.googleCalendar.email,
+                    connectedAt: state.googleCalendar.connectedAt,
+                    tokenExpiresAt: state.googleCalendar.tokenExpiresAt,
+                    // accessToken intentionally omitted
+                },
+                microsoftCalendar: {
+                    connected: state.microsoftCalendar.connected,
+                    email: state.microsoftCalendar.email,
+                    connectedAt: state.microsoftCalendar.connectedAt,
+                    tokenExpiresAt: state.microsoftCalendar.tokenExpiresAt,
+                    // accessToken intentionally omitted
+                },
+                icalFeeds: state.icalFeeds,
+                lastSyncAt: state.lastSyncAt,
+            }),
         }
     )
 );

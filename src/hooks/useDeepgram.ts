@@ -45,6 +45,8 @@ export function useDeepgram({
   const streamRef = useRef<MediaStream | null>(null);
   const latencyMonitor = useRef(createLatencyMonitor());
   const lastTranscriptTime = useRef<number>(Date.now());
+  const networkConnectionRef = useRef<any>(null);
+  const networkChangeHandlerRef = useRef<(() => void) | null>(null);
 
   // ============================================
   // CONNECT: Estabelece conexão com Deepgram
@@ -57,12 +59,6 @@ export function useDeepgram({
     }
 
     try {
-      console.log('🎙️ Connecting to Deepgram...');
-      console.log('📊 Config:', {
-        model: DEEPGRAM_CONFIG.model,
-        language: DEEPGRAM_CONFIG.language,
-        keywords: DEEPGRAM_CONFIG.keywords?.length || 0,
-      });
 
       const deepgram = createClient(DEEPGRAM_API_KEY);
 
@@ -73,7 +69,7 @@ export function useDeepgram({
       // EVENT: Connection Opened
       // ============================================
       connection.on(LiveTranscriptionEvents.Open, () => {
-        console.log('✅ Deepgram connection established');
+        // console.log('✅ Deepgram connection established');
         setConnectionState(LiveConnectionState.OPEN);
         setError(null);
 
@@ -81,7 +77,7 @@ export function useDeepgram({
         keepAliveIntervalRef.current = setInterval(() => {
           if (deepgramLiveRef.current && deepgramLiveRef.current.getReadyState() === 1) {
             deepgramLiveRef.current.keepAlive();
-            // console.log('💓 KeepAlive sent');
+            // // console.log('💓 KeepAlive sent');
           }
         }, AUDIO_CHUNK_CONFIG.keepAliveInterval);
       });
@@ -90,14 +86,14 @@ export function useDeepgram({
       // EVENT: Connection Closed
       // ============================================
       connection.on(LiveTranscriptionEvents.Close, () => {
-        console.log('🔌 Deepgram connection closed');
+        // console.log('🔌 Deepgram connection closed');
         setConnectionState(LiveConnectionState.CLOSED);
         clearInterval(keepAliveIntervalRef.current);
 
         // Log final stats
         const stats = latencyMonitor.current.getStats();
         if (stats) {
-          console.log('📊 Final Latency Stats:', stats);
+          // console.log('📊 Final Latency Stats:', stats);
         }
       });
 
@@ -154,7 +150,7 @@ export function useDeepgram({
           // Log para debug
           if (isFinal) {
             const speakerTag = speakerId !== undefined ? `[Speaker ${speakerId}]` : '';
-            console.log(`📝 [Final] ${speakerTag} "${transcript}" (latency: ${latency}ms, conf: ${confidence?.toFixed(2) || 'N/A'})`);
+            // console.log(`📝 [Final] ${speakerTag} "${transcript}" (latency: ${latency}ms, conf: ${confidence?.toFixed(2) || 'N/A'})`);
           }
         }
       });
@@ -163,7 +159,7 @@ export function useDeepgram({
       // EVENT: Utterance End (fim de frase)
       // ============================================
       connection.on(LiveTranscriptionEvents.UtteranceEnd, () => {
-        console.log('🔚 Utterance ended');
+        // console.log('🔚 Utterance ended');
         // Você pode usar isso para detectar pausas longas
       });
 
@@ -180,7 +176,7 @@ export function useDeepgram({
       // ============================================
       // MICROPHONE SETUP
       // ============================================
-      console.log('🎤 Requesting microphone access...');
+      // console.log('🎤 Requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -191,11 +187,11 @@ export function useDeepgram({
       });
 
       streamRef.current = stream;
-      console.log('✅ Microphone access granted');
+      // console.log('✅ Microphone access granted');
 
       // Detectar melhor codec disponível
       const mimeType = getBestAudioMimeType();
-      console.log('🎵 Audio format:', mimeType || 'default');
+      // console.log('🎵 Audio format:', mimeType || 'default');
 
       // Detectar chunk size ideal baseado em rede
       const optimalChunkSize = enableAdaptiveChunking
@@ -203,7 +199,7 @@ export function useDeepgram({
         : AUDIO_CHUNK_CONFIG.default;
 
       setCurrentChunkSize(optimalChunkSize);
-      console.log(`⚡ Chunk size: ${optimalChunkSize}ms`);
+      // console.log(`⚡ Chunk size: ${optimalChunkSize}ms`);
 
       // Criar MediaRecorder com configurações otimizadas
       const mediaRecorder = new MediaRecorder(stream, {
@@ -233,27 +229,27 @@ export function useDeepgram({
       mediaRecorder.start(optimalChunkSize);
       microphoneRef.current = mediaRecorder;
 
-      console.log('🚀 Deepgram transcription started');
+      // console.log('🚀 Deepgram transcription started');
 
       // ============================================
       // ADAPTIVE CHUNKING (se habilitado)
       // ============================================
       if (enableAdaptiveChunking) {
         // @ts-ignore
-        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const netConn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 
-        if (connection) {
-          connection.addEventListener('change', () => {
+        if (netConn) {
+          const handler = () => {
             const newChunkSize = getOptimalChunkSize();
             if (newChunkSize !== currentChunkSize && microphoneRef.current) {
-              console.log(`🔄 Network changed, adjusting chunk size: ${currentChunkSize}ms → ${newChunkSize}ms`);
               setCurrentChunkSize(newChunkSize);
-
-              // Reiniciar recording com novo chunk size
               microphoneRef.current.stop();
               microphoneRef.current.start(newChunkSize);
             }
-          });
+          };
+          netConn.addEventListener('change', handler);
+          networkConnectionRef.current = netConn;
+          networkChangeHandlerRef.current = handler;
         }
       }
 
@@ -268,7 +264,7 @@ export function useDeepgram({
   // DISCONNECT: Encerra conexão
   // ============================================
   const disconnect = useCallback(() => {
-    console.log('🔌 Disconnecting from Deepgram...');
+    // console.log('🔌 Disconnecting from Deepgram...');
 
     // Parar MediaRecorder
     if (microphoneRef.current && microphoneRef.current.state !== 'inactive') {
@@ -298,8 +294,15 @@ export function useDeepgram({
       keepAliveIntervalRef.current = null;
     }
 
+    // Remover listener de mudança de rede
+    if (networkConnectionRef.current && networkChangeHandlerRef.current) {
+      networkConnectionRef.current.removeEventListener('change', networkChangeHandlerRef.current);
+      networkConnectionRef.current = null;
+      networkChangeHandlerRef.current = null;
+    }
+
     setConnectionState(LiveConnectionState.CLOSED);
-    console.log('✅ Disconnected successfully');
+    // console.log('✅ Disconnected successfully');
   }, []);
 
   // ============================================

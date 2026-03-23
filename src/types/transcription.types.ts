@@ -108,4 +108,5 @@ export interface SOAPGenerationRequest {
   patientName: string;
   patientAge?: number;
   patientGender?: string;
+  activeProtocolTitle?: string;
 }

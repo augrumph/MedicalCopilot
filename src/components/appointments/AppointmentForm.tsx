@@ -391,7 +391,7 @@ export function AppointmentForm({
  </Button>
  <Button
  type="submit"
- className="bg-[#8C00FF] #7a00e6]"
+ className="bg-[#682bd7] #5a24bc]"
  >
  {appointment ?'Atualizar' :'Agendar'}
  </Button>

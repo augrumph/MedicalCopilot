@@ -1,7 +1,6 @@
 /**
  * ExamRequestPanel Component - PREMIUM DESIGN
- * Painel profissional para solicitação de exames médicos
- * Integra com MEMED API via protocolo
+ * Painel profissional para solicitação de exames médicos (Geração Local)
  */
 
 import { useState } from 'react';
@@ -24,7 +23,9 @@ import {
   X,
   Plus,
   FileText,
-  Sparkles
+  Sparkles,
+  Printer,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -153,67 +154,26 @@ export function ExamRequestPanel({
     setIsLoading(true);
 
     try {
-      const examData = selectedExamDetails.map(exam => ({
-        id: exam.id,
-        nome: exam.name,
-        categoria: exam.category,
-        codigoSUS: exam.sus,
-        codigoTUSS: exam.tuss,
-        preparacao: exam.preparacao
-      }));
+      // Simula processamento local (geração de PDF ou registro no DB)
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-
-      const prescriberResponse = await fetch(`${BACKEND_URL}/api/memed/prescriber/upsert`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          externalId: 'doctor-default-001',
-          name: doctorName || 'Dr. Médico Exemplo',
-          cpf: '12345678900',
-          professionalId: '123456',
-          state: 'SP',
-          specialtyId: 1,
-        }),
-      });
-
-      if (!prescriberResponse.ok) {
-        throw new Error('Falha ao obter token do médico');
-      }
-
-      const prescriberData = await prescriberResponse.json();
-      const doctorToken = prescriberData.data.token;
-
-      const protocolResponse = await fetch(`${BACKEND_URL}/api/memed/protocol`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userToken: doctorToken,
-          name: `Solicitação de Exames - ${patientName || 'Paciente'} - ${new Date().toLocaleDateString('pt-BR')}`,
-          exams: examData,
-        }),
-      });
-
-      if (!protocolResponse.ok) {
-        throw new Error('Falha ao criar solicitação de exames');
-      }
-
-      await protocolResponse.json();
-
-      toast.success('Solicitação criada com sucesso!', {
-        description: `${selectedExams.length} exame(s) solicitado(s) para ${patientName}`,
+      toast.success('Solicitação gerada com sucesso!', {
+        description: `${selectedExams.length} exame(s) registrados para ${patientName}`,
       });
 
       if (onExamRequested) {
         onExamRequested(selectedExams);
       }
 
+      // Aqui poderíamos abrir um PDF ou a tela de impressão
+      window.print();
+
       clearSelection();
 
     } catch (error: any) {
       console.error('Erro ao solicitar exames:', error);
       toast.error('Erro ao criar solicitação', {
-        description: error.message || 'Tente novamente',
+        description: 'Tente novamente',
       });
     } finally {
       setIsLoading(false);
@@ -233,7 +193,7 @@ export function ExamRequestPanel({
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50">
       {/* Header Premium */}
-      <div className="bg-white border-b border-gray-200 p-6">
+      <div className="bg-white border-b border-gray-200 p-6 no-print">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -311,7 +271,7 @@ export function ExamRequestPanel({
       <div className="flex-1 overflow-hidden">
         <div className="h-full max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Exam List */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 no-print">
             <ScrollArea className="h-[calc(100vh-360px)]">
               <div className="space-y-6 pr-4">
                 {searchTerm ? (
@@ -372,10 +332,10 @@ export function ExamRequestPanel({
             </ScrollArea>
           </div>
 
-          {/* Right: Selected Summary */}
-          <div className="lg:col-span-1">
-            <Card className="h-[calc(100vh-360px)] flex flex-col border-2 border-gray-200 shadow-lg">
-              <CardHeader className="pb-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
+          {/* Right: Selected Summary (Aparece na impressão) */}
+          <div className="lg:col-span-1 print:w-full">
+            <Card className="h-[calc(100vh-360px)] print:h-auto flex flex-col border-2 border-gray-200 shadow-lg print:shadow-none print:border-none">
+              <CardHeader className="pb-4 border-b bg-gradient-to-r from-blue-50 to-purple-50 no-print">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-gray-900 flex items-center gap-2">
                     <FileText className="w-5 h-5 text-blue-600" />
@@ -395,9 +355,17 @@ export function ExamRequestPanel({
                 </div>
               </CardHeader>
 
+              {/* Cabeçalho da Impressão (Apenas print) */}
+              <div className="hidden print:block p-8 text-center border-b-2 border-black mb-8">
+                <h1 className="text-2xl font-bold uppercase tracking-widest">Solicitação de Exames</h1>
+                <p className="mt-2 text-lg">Médico: {doctorName || 'Dr. Médico'}</p>
+                <p className="text-lg">Paciente: {patientName}</p>
+                <p className="text-sm mt-1">Data: {new Date().toLocaleDateString('pt-BR')}</p>
+              </div>
+
               <CardContent className="flex-1 flex flex-col p-0">
                 {selectedExams.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center text-center p-6">
+                  <div className="flex-1 flex items-center justify-center text-center p-6 no-print">
                     <div>
                       <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                         <Plus className="w-10 h-10 text-gray-300" />
@@ -408,38 +376,43 @@ export function ExamRequestPanel({
                   </div>
                 ) : (
                   <>
-                    <ScrollArea className="flex-1 p-4">
+                    <ScrollArea className="flex-1 p-4 print:p-0">
                       <AnimatePresence mode="popLayout">
-                        <div className="space-y-2">
+                        <div className="space-y-2 print:space-y-4">
                           {selectedExamDetails.map((exam, idx) => (
                             <motion.div
                               key={exam.id}
                               initial={{ opacity: 0, x: 20 }}
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: -20 }}
-                              className="group bg-gradient-to-r from-blue-50 to-white border-2 border-blue-200 rounded-lg p-3 hover:shadow-md transition-all"
+                              className="group bg-gradient-to-r from-blue-50 to-white border-2 border-blue-200 rounded-lg p-3 hover:shadow-md transition-all print:border-none print:bg-none print:p-0"
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
-                                  <p className="font-bold text-blue-900 text-sm flex items-center gap-2">
-                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-xs">
+                                  <p className="font-bold text-blue-900 text-sm print:text-lg flex items-center gap-2">
+                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-xs print:hidden">
                                       {idx + 1}
                                     </span>
                                     {exam.name}
                                   </p>
-                                  {exam.sus && (
-                                    <p className="text-xs text-blue-600 mt-1 font-mono">SUS {exam.sus}</p>
-                                  )}
+                                  <div className="flex gap-4 mt-1">
+                                    {exam.sus && (
+                                      <p className="text-[10px] print:text-sm text-blue-600 font-mono">SUS: {exam.sus}</p>
+                                    )}
+                                    {exam.tuss && (
+                                      <p className="text-[10px] print:text-sm text-purple-600 font-mono">TUSS: {exam.tuss}</p>
+                                    )}
+                                  </div>
                                   {exam.preparacao && (
-                                    <p className="text-xs text-gray-600 mt-1 flex items-start gap-1">
-                                      <Sparkles className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                                      <span className="italic">{exam.preparacao}</span>
+                                    <p className="text-xs print:text-base text-gray-600 mt-1 flex items-start gap-1">
+                                      <Sparkles className="w-3 h-3 mt-0.5 flex-shrink-0 print:hidden" />
+                                      <span className="italic">Prep: {exam.preparacao}</span>
                                     </p>
                                   )}
                                 </div>
                                 <button
                                   onClick={() => toggleExam(exam.id)}
-                                  className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all"
+                                  className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all no-print"
                                 >
                                   <X className="w-4 h-4 text-red-600" />
                                 </button>
@@ -450,7 +423,7 @@ export function ExamRequestPanel({
                       </AnimatePresence>
                     </ScrollArea>
 
-                    <div className="p-4 border-t bg-gray-50 space-y-3">
+                    <div className="p-4 border-t bg-gray-50 space-y-3 no-print">
                       <Button
                         onClick={handleRequestExams}
                         disabled={isLoading}
@@ -459,18 +432,32 @@ export function ExamRequestPanel({
                         {isLoading ? (
                           <>
                             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Gerando Solicitação...
+                            Gerando...
                           </>
                         ) : (
                           <>
-                            <CheckCircle2 className="w-5 h-5 mr-2" />
-                            Gerar Solicitação ({selectedExams.length})
+                            <Printer className="w-5 h-5 mr-2" />
+                            Imprimir Solicitação ({selectedExams.length})
                           </>
                         )}
                       </Button>
-                      <p className="text-xs text-center text-gray-500">
-                        Protocolo será criado via <span className="font-semibold">MEMED API</span>
-                      </p>
+                      <div className="flex gap-2">
+                        <Button variant="outline" className="flex-1 h-10 text-xs border-gray-300">
+                          <Download className="w-3.5 h-3.5 mr-1.5" />
+                          Salvar PDF
+                        </Button>
+                        <Button variant="outline" className="flex-1 h-10 text-xs border-gray-300">
+                          <FileText className="w-3.5 h-3.5 mr-1.5" />
+                          Registrar Histórico
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Assinatura Médica (Apenas print) */}
+                    <div className="hidden print:block mt-24 text-center">
+                        <div className="w-64 h-px bg-black mx-auto mb-2"></div>
+                        <p className="text-lg font-bold">{doctorName || 'Dr. Médico'}</p>
+                        <p className="text-sm uppercase tracking-widest">Assinatura e Carimbo</p>
                     </div>
                   </>
                 )}

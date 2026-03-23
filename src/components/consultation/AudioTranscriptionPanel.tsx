@@ -71,7 +71,7 @@ export function AudioTranscriptionPanel({
 "w-full h-14 text-base font-semibold transition-all duration-300",
  isListening
  ?"bg-destructive"
- :"bg-[#283618] #1e2914]"
+ :"bg-[#682bd7] hover:bg-[#4a1fa0]"
  )}
  >
  {isListening ? (

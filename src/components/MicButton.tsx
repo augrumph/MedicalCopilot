@@ -24,7 +24,7 @@ const MicButton: React.FC<MicButtonProps> = ({
  className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
  isListening
  ?'bg-[#8b0000] text-white animate-pulse' // Sophisticated dark red for listening
- :'bg-[#D4D4D4] text-[#283618]' // Forest palette for idle
+ :'bg-[#e6ddd6] text-[#5b3629]' // Forest palette for idle
 } ${className}`}
  >
  {isListening ? <MicOff className="h-8 w-8" aria-hidden="true" /> : <Mic className="h-8 w-8" aria-hidden="true" />}

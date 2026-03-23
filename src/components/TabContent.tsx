@@ -121,7 +121,7 @@ const TabContent: React.FC<TabContentProps> = ({
  return (
  <div className="space-y-4">
  <div className="flex items-center gap-3 mb-6">
- <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#FF3F7F] to-[#FF1654] flex items-center justify-center">
+ <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#bd2e95] to-[#bd2e95] flex items-center justify-center">
  <Pill className="h-5 w-5 text-white" />
  </div>
  <div>
@@ -140,7 +140,7 @@ const TabContent: React.FC<TabContentProps> = ({
  >
  <Card className={cn(
 "shadow-md",
- med.type ==='primary' &&"bg-gradient-to-br from-[#8C00FF]/10 to-[#450693]/5 border border-[#8C00FF]/30",
+ med.type ==='primary' &&"bg-gradient-to-br from-[#682bd7]/10 to-[#4a1fa0]/5 border border-[#682bd7]/30",
  med.type ==='alternative' &&"bg-gradient-to-br from-[#FFC400]/10 to-[#FF9500]/5 border border-[#FFC400]/30",
  med.type ==='optional' &&"bg-gray-50 border border-gray-300"
  )}>
@@ -149,7 +149,7 @@ const TabContent: React.FC<TabContentProps> = ({
  <div className="flex items-center gap-3">
  <div className={cn(
 "h-10 w-10 rounded-lg flex items-center justify-center",
- med.type ==='primary' &&"bg-gradient-to-br from-[#8C00FF] to-[#450693]",
+ med.type ==='primary' &&"bg-gradient-to-br from-[#682bd7] to-[#4a1fa0]",
  med.type ==='alternative' &&"bg-gradient-to-br from-[#FFC400] to-[#FF9500]",
  med.type ==='optional' &&"bg-gray-400"
  )}>
@@ -162,7 +162,7 @@ const TabContent: React.FC<TabContentProps> = ({
  </div>
  <div className={cn(
 "px-2 py-1 rounded-full text-xs font-semibold",
- med.type ==='primary' &&"bg-[#8C00FF] text-white",
+ med.type ==='primary' &&"bg-[#682bd7] text-white",
  med.type ==='alternative' &&"bg-[#FFC400] text-gray-900",
  med.type ==='optional' &&"bg-gray-400 text-white"
  )}>
@@ -225,7 +225,7 @@ const TabContent: React.FC<TabContentProps> = ({
  <div className="space-y-4">
  <div className="flex items-center justify-between mb-6">
  <div className="flex items-center gap-3">
- <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center">
+ <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#682bd7] to-[#4a1fa0] flex items-center justify-center">
  <FileCheck className="h-5 w-5 text-white" />
  </div>
  <div>
@@ -237,7 +237,7 @@ const TabContent: React.FC<TabContentProps> = ({
  {!prescriptionGenerated && (
  <Button
  onClick={() => setPrescriptionGenerated(true)}
- className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white shadow-md"
+ className="bg-gradient-to-r from-[#682bd7] to-[#4a1fa0] text-white shadow-md"
  >
  <FileCheck className="mr-2 h-4 w-4" />
  Gerar Receita
@@ -249,8 +249,8 @@ const TabContent: React.FC<TabContentProps> = ({
  <Card className="border-0 bg-gradient-to-br from-gray-50 to-gray-100 shadow-md">
  <CardContent className="p-12 text-center">
  <div className="relative mb-6">
- <div className="absolute inset-0 bg-gradient-to-br from-[#8C00FF] to-[#450693] rounded-full blur-2xl opacity-20 animate-pulse"></div>
- <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center mx-auto shadow-xl">
+ <div className="absolute inset-0 bg-gradient-to-br from-[#682bd7] to-[#4a1fa0] rounded-full blur-2xl opacity-20 animate-pulse"></div>
+ <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-[#682bd7] to-[#4a1fa0] flex items-center justify-center mx-auto shadow-xl">
  <FileCheck className="h-12 w-12 text-white" />
  </div>
  </div>

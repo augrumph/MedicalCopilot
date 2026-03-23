@@ -126,7 +126,7 @@ export function AppointmentCalendar({
  variant={viewMode ==='day' ?'default' :'outline'}
  size="sm"
  onClick={() => setViewMode('day')}
- className={viewMode ==='day' ?'bg-[#8C00FF] #7a00e6]' :''}
+ className={viewMode ==='day' ?'bg-[#682bd7] #5a24bc]' :''}
  >
  Dia
  </Button>
@@ -134,7 +134,7 @@ export function AppointmentCalendar({
  variant={viewMode ==='week' ?'default' :'outline'}
  size="sm"
  onClick={() => setViewMode('week')}
- className={viewMode ==='week' ?'bg-[#8C00FF] #7a00e6]' :''}
+ className={viewMode ==='week' ?'bg-[#682bd7] #5a24bc]' :''}
  >
  Semana
  </Button>
@@ -158,12 +158,12 @@ export function AppointmentCalendar({
  {slotAppointments.map((apt) => (
  <div
  key={apt.id}
- className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-[#8C00FF] cursor-pointer transition-all"
+ className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-[#682bd7] cursor-pointer transition-all"
  onClick={() => onAppointmentClick?.(apt)}
  >
  <div className="flex justify-between items-center">
  <span className="font-semibold text-gray-900">{apt.patientName}</span>
- <Badge className="bg-[#8C00FF] text-white text-xs">
+ <Badge className="bg-[#682bd7] text-white text-xs">
  {apt.startTime} - {apt.endTime}
  </Badge>
  </div>
@@ -200,11 +200,11 @@ export function AppointmentCalendar({
  <div
  key={idx}
  className={`p-3 text-center text-sm font-medium ${
- isToday(day) ?'bg-[#8C00FF]/10 text-[#8C00FF]' :'bg-gray-100 text-gray-700'
+ isToday(day) ?'bg-[#682bd7]/10 text-[#682bd7]' :'bg-gray-100 text-gray-700'
 }`}
  >
  <div>{DAYS_OF_WEEK[day.getDay()]}</div>
- <div className={`text-xl font-bold ${isToday(day) ?'text-[#8C00FF]' :'text-gray-900'}`}>
+ <div className={`text-xl font-bold ${isToday(day) ?'text-[#682bd7]' :'text-gray-900'}`}>
  {day.getDate()}
  </div>
  </div>
@@ -229,7 +229,7 @@ export function AppointmentCalendar({
  {slotAppointments.map((apt) => (
  <div
  key={apt.id}
- className="p-2 mb-1 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-[#8C00FF] cursor-pointer transition-all text-xs"
+ className="p-2 mb-1 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-l-4 border-[#682bd7] cursor-pointer transition-all text-xs"
  onClick={() => onAppointmentClick?.(apt)}
  >
  <div className="font-medium text-gray-900 truncate">{apt.patientName}</div>

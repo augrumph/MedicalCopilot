@@ -26,7 +26,7 @@ const CardAction: React.FC<CardActionProps> = ({
  }}
  whileTap={{ scale: 0.98, y: 0}}
  transition={{ type:"spring", stiffness: 300, damping: 15}}
- className={`bg-[#D4D4D4] rounded-3xl p-8 cursor-pointer transition-all ${className}`}
+ className={`bg-[#e6ddd6] rounded-3xl p-8 cursor-pointer transition-all ${className}`}
  onClick={onClick}
  >
  {title && (

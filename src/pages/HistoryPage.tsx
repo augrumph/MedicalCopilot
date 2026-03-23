@@ -113,32 +113,32 @@ export function HistoryPage() {
       value: consultations.length.toString(),
       icon: FileText,
       description: 'consultas',
-      gradient: 'from-[#8C00FF] to-[#450693]',
-      iconBg: 'bg-[#8C00FF]',
+      gradient: 'bg-[#1b1b1b]',
+      iconBg: 'bg-[#1b1b1b]',
     },
     {
       title: 'Encontradas',
       value: filteredConsultations.length.toString(),
       icon: Search,
       description: 'nos filtros',
-      gradient: 'from-[#FF3F7F] to-[#FF1654]',
-      iconBg: 'bg-[#FF3F7F]',
+      gradient: 'bg-[#512B81]',
+      iconBg: 'bg-[#512B81]',
     },
     {
       title: 'Concluídas',
       value: completedConsultations.toString(),
       icon: TrendingUp,
       description: 'finalizadas',
-      gradient: 'from-[#00D9A5] to-[#00B386]',
-      iconBg: 'bg-[#00D9A5]',
+      gradient: 'bg-emerald-500',
+      iconBg: 'bg-emerald-500',
     },
     {
       title: 'Duração Média',
       value: `${avgDuration}min`,
       icon: Clock,
       description: 'por consulta',
-      gradient: 'from-[#FFC400] to-[#FF9500]',
-      iconBg: 'bg-[#FFC400]',
+      gradient: 'bg-slate-500',
+      iconBg: 'bg-slate-500',
     },
   ];
 
@@ -149,11 +149,9 @@ export function HistoryPage() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#450693] via-[#8C00FF] to-[#FF3F7F] p-6 md:p-8 shadow-2xl"
+          className="relative overflow-hidden rounded-3xl bg-[#1b1b1b] p-6 md:p-8 shadow-xl"
         >
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light"></div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#512B81]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
 
           <div className="relative">
             <motion.div
@@ -162,7 +160,7 @@ export function HistoryPage() {
               transition={{ delay: 0.1 }}
               className="flex items-center gap-2 mb-2"
             >
-              <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold">
+              <Badge className="bg-[#512B81] text-white border-0 px-2.5 py-1 text-xs font-bold uppercase tracking-wider">
                 <Sparkles className="h-3 w-3 mr-1" />
                 Histórico Completo
               </Badge>
@@ -198,7 +196,7 @@ export function HistoryPage() {
               transition={{ delay: 0.4 + index * 0.05 }}
             >
               <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300 group">
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-5`} />
+                <div className={`absolute inset-0 ${stat.gradient} opacity-5`} />
 
                 <CardContent className="p-4 relative">
                   <div className="flex items-start gap-3">
@@ -238,7 +236,7 @@ export function HistoryPage() {
               placeholder={config.searchPlaceholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-10 border-gray-200 rounded-xl focus-visible:border-[#8C00FF] focus-visible:ring-2 focus-visible:ring-[#8C00FF]/20"
+              className="pl-10 h-10 border-slate-200 rounded-xl focus-visible:border-[#512B81] focus-visible:ring-2 focus-visible:ring-[#512B81]/10 transition-all font-medium"
             />
           </div>
 
@@ -274,15 +272,15 @@ export function HistoryPage() {
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
-            className={`h-10 rounded-xl px-4 border-gray-200 ${showFilters
-              ? 'border-[#8C00FF] bg-[#8C00FF]/5 text-[#8C00FF]'
-              : 'hover:border-gray-300'
+            className={`h-10 rounded-xl px-4 border-slate-200 transition-all ${showFilters
+              ? 'border-[#512B81] bg-[#512B81]/5 text-[#512B81]'
+              : 'hover:border-slate-300'
               }`}
           >
             <Filter className="h-4 w-4 mr-2" />
             Filtros
             {activeFiltersCount > 0 && (
-              <Badge className="ml-2 h-5 w-5 rounded-full bg-[#8C00FF] text-white text-xs flex items-center justify-center p-0">
+              <Badge className="ml-2 h-5 w-5 rounded-full bg-[#512B81] text-white text-[10px] flex items-center justify-center p-0 font-bold">
                 {activeFiltersCount}
               </Badge>
             )}
@@ -372,13 +370,13 @@ export function HistoryPage() {
             className="flex flex-col items-center justify-center py-16 text-center"
           >
             <div className="relative mb-6">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#8C00FF] to-[#450693] rounded-full blur-2xl opacity-20 animate-pulse"></div>
-              <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#8C00FF] to-[#450693] flex items-center justify-center shadow-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#682bd7] to-[#4a1fa0] rounded-full blur-2xl opacity-20 animate-pulse"></div>
+              <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#682bd7] to-[#4a1fa0] flex items-center justify-center shadow-xl">
                 <FileText className="h-12 w-12 text-white" />
               </div>
             </div>
 
-            <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-[#450693] to-[#8C00FF] bg-clip-text text-transparent">
+            <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-[#4a1fa0] to-[#682bd7] bg-clip-text text-transparent">
               Nenhuma {config.consultationLabel.toLowerCase()} encontrada
             </h3>
 
@@ -393,7 +391,7 @@ export function HistoryPage() {
                   setDiagnosisFilter('all');
                   setSearchTerm('');
                 }}
-                className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white shadow-lg hover:shadow-xl"
+                className="bg-gradient-to-r from-[#682bd7] to-[#4a1fa0] text-white shadow-lg hover:shadow-xl"
               >
                 <X className="h-4 w-4 mr-2" />
                 Limpar filtros
@@ -426,7 +424,7 @@ export function HistoryPage() {
                     transition={{ delay: Math.min(index * 0.01, 0.2) }}
                   >
                     <Card
-                      className="group border-0 shadow-md hover:shadow-lg bg-white hover:border-[#8C00FF]/20 transition-all duration-200 cursor-pointer rounded-2xl"
+                      className="group border border-slate-100 shadow-sm hover:shadow-md bg-white hover:border-[#512B81]/20 transition-all duration-200 cursor-pointer rounded-2xl"
                       onClick={() => navigate(`/consultation/${consultation.id}`)}
                     >
                       <CardContent className="p-4">
@@ -442,7 +440,7 @@ export function HistoryPage() {
                           <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                             {/* Patient */}
                             <div className="md:col-span-3">
-                              <h3 className="font-semibold text-gray-900 truncate group-hover:text-[#8C00FF] transition-colors">
+                              <h3 className="font-bold text-gray-900 truncate group-hover:text-[#512B81] transition-colors">
                                 {patient.name}
                               </h3>
                               <p className="text-xs text-gray-500 mt-0.5">
@@ -468,11 +466,11 @@ export function HistoryPage() {
                             <div className="md:col-span-4">
                               <div className="flex items-center gap-2">
                                 {appContext === 'psychology' ? (
-                                  <Brain className="h-3.5 w-3.5 text-[#8C00FF] flex-shrink-0" />
+                                  <Brain className="h-3.5 w-3.5 text-[#512B81] flex-shrink-0" />
                                 ) : (
-                                  <Stethoscope className="h-3.5 w-3.5 text-[#8C00FF] flex-shrink-0" />
+                                  <Stethoscope className="h-3.5 w-3.5 text-[#512B81] flex-shrink-0" />
                                 )}
-                                <p className="text-sm text-gray-700 truncate font-medium">{diagnosis}</p>
+                                <p className="text-sm text-gray-700 truncate font-semibold">{diagnosis}</p>
                               </div>
                             </div>
 
@@ -485,7 +483,7 @@ export function HistoryPage() {
 
                             {/* Action */}
                             <div className="md:col-span-1 flex items-center justify-end">
-                              <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-[#8C00FF] group-hover:translate-x-1 transition-all flex-shrink-0" />
+                              <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-[#682bd7] group-hover:translate-x-1 transition-all flex-shrink-0" />
                             </div>
                           </div>
                         </div>
@@ -517,7 +515,7 @@ export function HistoryPage() {
                             className="h-12 w-12 rounded-xl object-cover flex-shrink-0 ring-2 ring-white shadow-sm"
                           />
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-gray-900 truncate group-hover:text-[#8C00FF] transition-colors">
+                            <h3 className="font-bold text-gray-900 truncate group-hover:text-[#682bd7] transition-colors">
                               {patient.name}
                             </h3>
                             <p className="text-xs text-gray-500">
@@ -556,17 +554,17 @@ export function HistoryPage() {
                       </div>
 
                       {/* Diagnosis */}
-                      <div className="mb-3 p-3 bg-gradient-to-r from-[#8C00FF]/5 to-transparent rounded-xl">
-                        <p className="text-xs text-gray-500 mb-1">{config.diagnosisLabel}</p>
-                        <div className="flex items-center gap-2">
-                          {appContext === 'psychology' ? (
-                            <Brain className="h-3.5 w-3.5 text-[#8C00FF] flex-shrink-0" />
-                          ) : (
-                            <Stethoscope className="h-3.5 w-3.5 text-[#8C00FF] flex-shrink-0" />
-                          )}
-                          <p className="text-sm font-semibold text-gray-900 truncate">{diagnosis}</p>
+                        <div className="mb-3 p-3 bg-slate-50 rounded-xl border border-slate-100/50">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">{config.diagnosisLabel}</p>
+                          <div className="flex items-center gap-2">
+                            {appContext === 'psychology' ? (
+                              <Brain className="h-3.5 w-3.5 text-[#512B81] flex-shrink-0" />
+                            ) : (
+                              <Stethoscope className="h-3.5 w-3.5 text-[#512B81] flex-shrink-0" />
+                            )}
+                            <p className="text-sm font-bold text-gray-900 truncate">{diagnosis}</p>
+                          </div>
                         </div>
-                      </div>
 
                       {/* Note Preview */}
                       {notePreview && (
@@ -579,9 +577,9 @@ export function HistoryPage() {
 
                       {/* Footer */}
                       <div className="flex items-center justify-end pt-3 border-t border-gray-100">
-                        <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 group-hover:text-[#8C00FF] transition-colors">
+                        <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-slate-400 group-hover:text-[#512B81] transition-colors">
                           Ver detalhes
-                          <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
                         </div>
                       </div>
                     </CardContent>

@@ -198,7 +198,7 @@ export function useSpeakerDiarization({
         detectedRole !== 'unknown') {
       // Mudança detectada! Incrementar ID virtual
       virtualSpeakerId.current += 1;
-      console.log(`🔄 Speaker role change detected: ${lastDetectedRole.current} → ${detectedRole}`);
+      // console.log(`🔄 Speaker role change detected: ${lastDetectedRole.current} → ${detectedRole}`);
     }
 
     // Atualizar último role detectado (se não for unknown)
@@ -220,7 +220,7 @@ export function useSpeakerDiarization({
 
     // Detectar mudança de speaker virtual
     if (lastSpeakerId.current !== null && lastSpeakerId.current !== effectiveSpeakerId) {
-      console.log(`🔄 Virtual speaker change: ${lastSpeakerId.current} → ${effectiveSpeakerId}`);
+      // console.log(`🔄 Virtual speaker change: ${lastSpeakerId.current} → ${effectiveSpeakerId}`);
       if (onSpeakerChange) {
         onSpeakerChange(speaker);
       }
@@ -251,7 +251,7 @@ export function useSpeakerDiarization({
         onSegmentComplete(segment);
       }
 
-      console.log(`📝 [${speaker.name}] "${text}"`);
+      // console.log(`📝 [${speaker.name}] "${text}"`);
     }
   }, [registerSpeaker, onSpeakerChange, onSegmentComplete, identifySpeakerRole, speakers]);
 
@@ -273,7 +273,7 @@ export function useSpeakerDiarization({
       };
 
       prev.set(speakerId, updated);
-      console.log(`✅ Speaker ${speakerId} identified as ${role}${name ? ` (${name})` : ''}`);
+      // console.log(`✅ Speaker ${speakerId} identified as ${role}${name ? ` (${name})` : ''}`);
       return new Map(prev);
     });
   }, []);
@@ -340,7 +340,7 @@ export function useSpeakerDiarization({
     lastDetectedRole.current = null;
     virtualSpeakerId.current = 0;
     segmentIdCounter.current = 0;
-    console.log('🔄 Speaker diarization reset');
+    // console.log('🔄 Speaker diarization reset');
   }, []);
 
   /**

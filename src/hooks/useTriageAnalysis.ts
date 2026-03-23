@@ -1,17 +1,18 @@
 /**
- * useTriageAnalysis v2 - Arquitetura de 3 Estágios + Síntese Combo
+ * useTriageAnalysis v3
  *
- * Estágio 1: Extração de Triagem (OCR/Leitura)
- * Estágio 2: Análise Clínica Universal (Raciocínio em 4 etapas)
- * Estágio 3: Síntese de Painel (Cruzamento de dados + Decisão)
+ * Delegates the 3-stage image analysis to the backend (/api/analysis/triage).
+ * The Gemini API key never touches the browser — it lives only in the backend.
+ *
+ * Client responsibilities:
+ *  - Resize images before sending (bandwidth optimisation)
+ *  - Handle PDF/document files correctly (skip canvas, send as-is)
+ *  - Revoke object URLs to avoid memory leaks
  */
 
 import { useState, useCallback } from 'react';
 
-
-import { callGemini } from '../services/gemini';
-
-// ── Interfaces Compatíveis com CopilotPanel ──
+// ── Interfaces (kept intact — consumed by CopilotPanel) ──────────────────────
 
 export interface VitalSigns {
   pressaoArterial?: string;
@@ -93,199 +94,165 @@ export interface TriageAnalysis {
   examFindings?: ExamFinding[];
 }
 
-// ── Prompts Especializados ──
+// ── Config ────────────────────────────────────────────────────────────────────
 
-const TRIAGE_EXTRACTION_PROMPT = `Você é um Digitaizer de Triagem de alta fidelidade.
-Sua missão é extrair dados brutos de fichas de triagem (fotos, PDFs, manuscritos) SEM INTERPRETAR.
+const BACKEND_URL   = import.meta.env.VITE_BACKEND_URL || 'https://api.medicalcopilot.com.br';
+const MAX_IMAGE_PX  = 1024;
+const JPEG_QUALITY  = 0.85;
+const TIMEOUT_MS    = 180_000; // 3 min — thinking:high is slow
 
-### PROTOCOLO DE EXTRAÇÃO:
-- **Literabilidade**: Extraia exatamente o que está escrito. Se a letra for ilegível, use [ILEGÍVEL].
-- **Sinais Vitais**: Se houver múltiplas medidas, use a mais recente ou a mais alterada.
-- **Antecedentes**: Liste comorbidades e medicamentos em uso citados.
-- **Invisibilidade**: Se o campo não existir na imagem, retorne null.
+// ── Image helpers ─────────────────────────────────────────────────────────────
 
-### ESCOPO DE DADOS:
-1. IDENTIFICAÇÃO (Nome, Idade, Sexo)
-2. CLÍNICA (Queixa Principal, HMA, Início)
-3. VITAIS (PA, FC, FR, T, SpO2, Glicemia, Escala de Dor)
-4. RISCO (Classificação de cor original da triagem)`;
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload  = () => resolve(reader.result as string);
+    reader.onerror = reject;
+  });
+}
 
-const CLINICAL_ANALYSIS_PROMPT = `Você é um Analista de Diagnóstico por Imagem e Laboratório, agindo sob rigorosos padrões de Medicina Baseada em Evidências.
-Sua tarefa é analisar os exames fornecidos e detectar alterações patológicas com alta especificidade.
+function resizeImageToMax(file: File): Promise<string> {
+  // PDFs and office documents cannot be rendered by <img> — send as-is.
+  // Gemini supports application/pdf as inline_data.
+  const isDocument = file.type === 'application/pdf' ||
+                     /\.(pdf|doc|docx|txt)$/i.test(file.name);
+  if (isDocument) {
+    return fileToBase64(file);
+  }
 
-### DIRETRIZES DE ANÁLISE:
-1. **Diferenciação Etária/Fisiológica**: Ajuste sua interpretação para neonatos, crianças, adultos e idosos.
-2. **Padrões de Emergência (Time-Sensitive)**:
-   - **ECG**: Detecte Supra/Infra de ST, bloqueios de condução, Wellens, De Winter, QT longo.
-   - **TC/RM Crânio**: Identifique Hematomas (Epidural vs Subdural), AVC Isquêmico/Hemorrágico, Edema.
-   - **RX/TC Tórax**: Identifique Pneumotórax, Consolidações, Derrame Pleural, Congestão.
-   - **Laboratório**: Identifique desvios críticos (Troponina, D-Dímero, Lactato, Eletrólitos).
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    let objectUrl: string | null = URL.createObjectURL(file);
 
-### REGRAS DE OURO:
-- **Descrição Objetiva**: Não descreva apenas "alterado". Use termos como "Hipodensidade", "Infiltrado Intersticial", "Desvio de Eixo".
-- **Ação Clínica**: Para cada achado alterado, sugira a conduta imediata esperada pelo médico.
+    const cleanup = () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
+    };
 
-### RETORNO JSON:
-Use o SCHEMA definido para listar Parameter, Value, Reference, Status (NORMAL|ALTERADO|CRÍTICO) e Interpretation.`;
+    img.onload = () => {
+      cleanup();
+      const { naturalWidth: w, naturalHeight: h } = img;
 
-const COMBO_SYNTHESIS_PROMPT = `Você é o Diretor da Unidade de Emergência.
-Sua missão é cruzar os dados da triagem com os resultados dos exames para uma decisão clínica resolutiva e segura.
+      // Small enough — no resize needed
+      if (w <= MAX_IMAGE_PX && h <= MAX_IMAGE_PX && file.size < 500 * 1024) {
+        fileToBase64(file).then(resolve).catch(reject);
+        return;
+      }
 
-### CRITÉRIOS DE DECISÃO:
-1. **Status Global (NEWS2/qSOFA)**: 
-   - Use os sinais vitais da triagem para calcular mentalmente o risco. 
-   - **critical**: Sepse, Choque, IAM, AVC, Insuficiência Respiratória aguda, HED/HSD/HSA.
-   - **warning**: Sinais vitais limítrofes, dor intensa, exames com alterações moderadas.
-   - **stable**: Sinais vitais normais e exames sem alterações significativas.
+      const scale  = MAX_IMAGE_PX / Math.max(w, h);
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
 
-2. **Diferenciais Estruturados**: Liste hipóteses em ordem de probabilidade e gravidade.
-3. **Timeline e Protocolo**: Sugira os próximos passos (ex: "Jejum", "Monitorização contínua", "Transferência para sala vermelha").
-4. **Red Flags**: Liste alertas que exigem ação imediata (ex: "Risco de Torsades de Pointes", "Efeito de massa intracraniano").
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas context unavailable')); return; }
 
-### REGRAS DE OURO:
-- **HMA Técnico**: Se não houver dados, descreva apenas "Dados de triagem não disponibilizados".
-- **Sintese Clínica**: Crie um resumo conciso (1 parágrafo) correlacionando queixa + exames.
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY));
+    };
 
-### OUTPUT JSON:
-Retorne o objeto JSON seguindo exatamente a interface TriageAnalysis.`;
+    img.onerror = () => {
+      cleanup(); // always revoke, even on error
+      reject(new Error(`Não foi possível carregar a imagem: ${file.name}`));
+    };
 
-// ── Hook Principal ──
+    img.src = objectUrl;
+  });
+}
+
+// ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useTriageAnalysis() {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [stage, setStage] = useState<string>(""); // Novo estado de estágio
-  const [error, setError] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<TriageAnalysis | null>(null);
-
-  // Helpers de Imagem (Mantidos)
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (err) => reject(err);
-    });
-  };
-
-  const MAX_IMAGE_PX = 1024;
-  const resizeImageToMax = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const objectUrl = URL.createObjectURL(file);
-      const isDocument = file.type.includes('pdf') || file.name.match(/\.(pdf|doc|docx|txt)$/i);
-      const quality = isDocument ? 0.92 : 0.82;
-
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        const { naturalWidth: w, naturalHeight: h } = img;
-        if (w <= MAX_IMAGE_PX && h <= MAX_IMAGE_PX && file.size < 500 * 1024) {
-          fileToBase64(file).then(resolve).catch(reject);
-          return;
-        }
-        const scale = MAX_IMAGE_PX / Math.max(w, h);
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(w * scale);
-        canvas.height = Math.round(h * scale);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) { reject(new Error('Canvas context unavailable')); return; }
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = reject;
-      img.src = objectUrl;
-    });
-  };
-
-
-
-  const safeParseJSON = (text: string) => {
-    try { return JSON.parse(text); } catch {
-      try { return JSON.parse(text.replace(/```json|```/g, "").trim()); }
-      catch { return null; }
-    }
-  };
+  const [progress,     setProgress]     = useState(0);
+  const [stage,        setStage]        = useState('');
+  const [error,        setError]        = useState<string | null>(null);
+  const [analysis,     setAnalysis]     = useState<TriageAnalysis | null>(null);
 
   const analyzeImages = useCallback(async (
     triageImages: File[] = [],
-    examsImages: File[] = [],
+    examsImages:  File[] = [],
   ) => {
-    // if (!OPENAI_API_KEY) { setError('API Key missing'); return null; }
-    if (triageImages.length === 0 && examsImages.length === 0) { setError('Sem imagens'); return null; }
+    if (triageImages.length === 0 && examsImages.length === 0) {
+      setError('Adicione ao menos uma imagem para analisar.');
+      return null;
+    }
 
     setIsProcessing(true);
     setProgress(5);
     setError(null);
-    setStage("Iniciando...");
+    setStage('Preparando imagens...');
+
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
-      // 1. Prepara Imagens (Resize)
-      const triageB64: string[] = [];
-      for (const f of triageImages) triageB64.push(await resizeImageToMax(f));
+      // Resize all images in parallel (not serial)
+      setStage('Redimensionando imagens...');
+      setProgress(15);
 
-      const examsB64: string[] = [];
-      for (const f of examsImages) examsB64.push(await resizeImageToMax(f));
+      const [triageB64, examsB64] = await Promise.all([
+        Promise.all(triageImages.map(f => resizeImageToMax(f))),
+        Promise.all(examsImages.map(f => resizeImageToMax(f))),
+      ]);
 
-      let extractedTriage: any = null;
-      let examAnalysis: any = null;
+      setStage('Enviando para análise clínica...');
+      setProgress(30);
 
-      // ── ESTÁGIO 1: Extração de Triagem ──
-      if (triageB64.length > 0) {
-        setStage("Lendo ficha de triagem...");
-        setProgress(20);
-        const content: any[] = [{ type: "text", text: "Extraia dados desta ficha." }];
-        for (const b64 of triageB64) {
-          content.push({ type: "image_url", image_url: { url: b64, detail: "high" } });
-        }
-        const raw = await callGemini(content, { systemPrompt: TRIAGE_EXTRACTION_PROMPT, maxTokens: 1500, jsonMode: true, temperature: 0.2 });
-        extractedTriage = safeParseJSON(raw);
-      }
-
-      // ── ESTÁGIO 2: Análise de Exames ──
-      if (examsB64.length > 0) {
-        setStage("Analisando exames...");
-        setProgress(50);
-        const content: any[] = [];
-        if (extractedTriage) {
-          content.push({ type: "text", text: `CONTEXTO DO PACIENTE:\n${JSON.stringify(extractedTriage)}` });
-        }
-        content.push({ type: "text", text: "Analise estes exames com raciocínio clínico em 4 etapas." });
-        for (const b64 of examsB64) {
-          content.push({ type: "image_url", image_url: { url: b64, detail: "high" } });
-        }
-        const raw = await callGemini(content, { systemPrompt: CLINICAL_ANALYSIS_PROMPT, maxTokens: 3000, jsonMode: true, temperature: 0.2 });
-        examAnalysis = safeParseJSON(raw);
-      }
-
-      // ── ESTÁGIO 3: Síntese Final (Combo) ──
-      setStage("Gerando painel de decisão...");
-      setProgress(80);
-
-      const synthContent: any[] = [];
-      if (extractedTriage) synthContent.push({ type: "text", text: `DADOS TRIAGEM:\n${JSON.stringify(extractedTriage)}` });
-      if (examAnalysis) synthContent.push({ type: "text", text: `ANÁLISE EXAMES:\n${JSON.stringify(examAnalysis)}` });
-
-      synthContent.push({
-        type: "text",
-        text: "Gere o PAINEL FINAL (7 Zonas) cruzando os dados. Retorne JSON no formato TriageAnalysis EXATO."
+      const res = await fetch(`${BACKEND_URL}/api/analysis/triage`, {
+        method:      'POST',
+        headers:     { 'Content-Type': 'application/json' },
+        body:        JSON.stringify({ triageImages: triageB64, examsImages: examsB64 }),
+        credentials: 'include',
+        signal:      controller.signal,
       });
 
-      const finalRaw = await callGemini(synthContent, { systemPrompt: COMBO_SYNTHESIS_PROMPT, maxTokens: 3000, jsonMode: true, temperature: 0.2 });
-      const finalPanel = safeParseJSON(finalRaw);
+      setStage('Analisando exames...');
+      setProgress(65);
 
-      console.log("✅ Análise Final Concluída:", finalPanel?.patientName);
-      setAnalysis(finalPanel);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Erro HTTP ${res.status}`);
+      }
+
+      setStage('Gerando painel de decisão...');
+      setProgress(90);
+
+      const data = await res.json();
+      if (!data.success || !data.analysis) {
+        throw new Error(data.error || 'Resposta inválida do servidor');
+      }
+
+      setAnalysis(data.analysis);
       setProgress(100);
-      return finalPanel;
+      setStage('');
+      return data.analysis as TriageAnalysis;
 
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Erro na análise");
+      if (err.name === 'AbortError') {
+        setError('Tempo limite excedido. Tente novamente.');
+      } else {
+        console.error('[TriageAnalysis]', err);
+        setError(err.message || 'Erro na análise');
+      }
+      return null;
     } finally {
+      clearTimeout(timeoutId);
       setIsProcessing(false);
-      setStage("");
+      setStage('');
     }
   }, []);
 
-  return { analyzeImages, analysis, isProcessing, progress, stage, error, reset: () => setAnalysis(null) };
+  return {
+    analyzeImages,
+    analysis,
+    isProcessing,
+    progress,
+    stage,
+    error,
+    reset: () => { setAnalysis(null); setError(null); setProgress(0); },
+  };
 }

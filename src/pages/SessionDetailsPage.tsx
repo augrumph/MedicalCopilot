@@ -32,9 +32,9 @@ export function SessionDetailsPage() {
 
  if (!consultation || !patient) {
  return (
- <AppLayout title="" description="">
+ <AppLayout>
  <div className="flex items-center justify-center h-96">
- <p className="text-gray-500">Carregando...</p>
+ <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Carregando...</p>
  </div>
  </AppLayout>
  );
@@ -75,7 +75,7 @@ export function SessionDetailsPage() {
  const hasAttachments = patient.attachments && patient.attachments.length > 0;
 
  return (
- <AppLayout title="" description="">
+ <AppLayout>
  <PageTransition>
  <div className="flex flex-col h-full max-w-[1900px] mx-auto">
  {/* Header Compacto */}
@@ -111,17 +111,18 @@ export function SessionDetailsPage() {
 
  {/* Patient Header Compacto */}
  <motion.div initial={{ opacity: 0, x: -10}} animate={{ opacity: 1, x: 0}}>
- <Card className="border-0 shadow-sm bg-gradient-to-r from-purple-600 to-blue-600">
- <CardContent className="p-4">
+ <Card className="border-0 shadow-xl bg-[#1b1b1b] relative overflow-hidden">
+ <div className="absolute top-0 right-0 w-24 h-24 bg-[#512B81]/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+ <CardContent className="p-4 relative">
  <div className="flex items-center gap-3">
  <img
  src={getPatientAvatar(patient.name)}
  alt={patient.name}
- className="h-12 w-12 rounded-lg object-cover flex-shrink-0"
+ className="h-12 w-12 rounded-xl object-cover flex-shrink-0 ring-2 ring-[#512B81]/20 shadow-lg"
  />
  <div className="flex-1 min-w-0">
- <h1 className="text-base sm:text-lg font-bold text-white truncate">{patient.name}</h1>
- <div className="flex items-center gap-2 text-xs text-purple-100">
+ <h1 className="text-base sm:text-lg font-black text-white truncate tracking-tight">{patient.name}</h1>
+ <div className="flex items-center gap-2 text-[10px] text-white/40 font-bold uppercase tracking-widest">
  <span>{patient.age} anos</span>
  <span>•</span>
  <span>{patient.gender ==='masculino' ?'M' :'F'}</span>
@@ -130,7 +131,7 @@ export function SessionDetailsPage() {
  </div>
  </div>
  {patient.mainConditions?.[0] && (
- <Badge className="bg-white/20 text-white border-0 text-xs px-2 py-1 flex-shrink-0 hidden sm:inline-flex">
+ <Badge className="bg-[#512B81] text-white border-0 text-[10px] font-bold uppercase tracking-widest px-2 py-1 flex-shrink-0 hidden sm:inline-flex">
  {patient.mainConditions[0]}
  </Badge>
  )}
@@ -145,27 +146,27 @@ export function SessionDetailsPage() {
  animate={{ opacity: 1, x: 0}}
  transition={{ delay: 0.05}}
  >
- <Card className="border-2 border-blue-500 shadow-md bg-gradient-to-br from-blue-50 to-white">
+ <Card className="border-2 border-[#512B81]/20 shadow-lg shadow-purple-900/5 bg-slate-50">
  <CardContent className="p-4">
- <div className="flex items-center gap-2 mb-3 pb-3 border-b border-blue-200">
- <div className="h-9 w-9 rounded-lg bg-blue-500 flex items-center justify-center shadow-sm flex-shrink-0">
- <MessageCircle className="h-5 w-5 text-white" />
+ <div className="flex items-center gap-3 mb-3 pb-3 border-b border-slate-200">
+ <div className="h-9 w-9 rounded-xl bg-[#1b1b1b] flex items-center justify-center shadow-lg shadow-purple-900/10 flex-shrink-0">
+ <MessageCircle className="h-5 w-5 text-[#512B81]" />
  </div>
  <div>
- <h2 className="text-sm sm:text-base font-bold text-gray-900">Perguntar Hoje</h2>
- <p className="text-xs text-blue-600">Verificar nesta consulta</p>
+ <h2 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Perguntar Hoje</h2>
+ <p className="text-[10px] text-slate-500 font-bold uppercase">Baseado no contexto clínico</p>
  </div>
  </div>
  <div className="space-y-2">
  {suggestedQuestions.map((question, i) => (
  <div
  key={i}
- className="flex gap-2 items-start bg-white rounded-lg p-3 border border-blue-200 transition-colors"
+ className="flex gap-3 items-start bg-white rounded-xl p-3 border border-slate-100 transition-all hover:border-[#512B81]/20 shadow-sm"
  >
- <div className="h-6 w-6 rounded-md bg-blue-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+ <div className="h-6 w-6 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-[#512B81] font-black text-[10px] flex-shrink-0">
  {i + 1}
  </div>
- <p className="text-xs sm:text-sm text-gray-800 leading-relaxed">{question}</p>
+ <p className="text-xs sm:text-sm text-slate-700 font-bold leading-relaxed">{question}</p>
  </div>
  ))}
  </div>

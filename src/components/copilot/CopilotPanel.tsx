@@ -94,11 +94,11 @@ function Zone1Header({ a, timer, formatTime, onBack, onFinish }: {
     onBack: () => void;
     onFinish: () => void;
 }) {
-    const vs = a.vitalSigns;
+    const vs = a.vitalSigns ?? {};
     return (
         <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
             {/* Gradient hero */}
-            <div className="bg-gradient-to-r from-[#450693] via-[#8C00FF] to-[#FF3F7F] px-4 md:px-6 py-4">
+            <div className="bg-gradient-to-r from-[#4a1fa0] via-[#682bd7] to-[#bd2e95] px-4 md:px-6 py-4">
                 <div className="flex items-start justify-between gap-3">
                     {/* Left: patient info */}
                     <div className="flex items-start gap-2 flex-1 min-w-0">
@@ -151,11 +151,14 @@ function Zone1Header({ a, timer, formatTime, onBack, onFinish }: {
                             {vs.saturacao && <VitalBadge label="SpO₂" value={vs.saturacao} unit="%" icon={<Droplets className="h-3 w-3" />} />}
                             {vs.temperatura && <VitalBadge label="Temp" value={vs.temperatura} unit="°C" icon={<Thermometer className="h-3 w-3" />} />}
                             {vs.glicemia && <VitalBadge label="Glic" value={vs.glicemia} unit="mg/dL" icon={<Activity className="h-3 w-3" />} />}
+                            {!vs.pressaoArterial && !vs.frequenciaCardiaca && !vs.saturacao && !vs.temperatura && (
+                                <span className="text-xs text-gray-400 italic">Não informados</span>
+                            )}
                         </div>
                     </div>
                     <Button
                         onClick={onFinish}
-                        className="bg-gradient-to-r from-[#450693] to-[#8C00FF] hover:from-[#3a0580] hover:to-[#7a00df] text-white font-bold shadow-md rounded-xl h-10 px-4 flex-shrink-0"
+                        className="bg-gradient-to-r from-[#4a1fa0] to-[#682bd7] hover:from-[#4a1fa0] hover:to-[#5a24bc] text-white font-bold shadow-md rounded-xl h-10 px-4 flex-shrink-0"
                     >
                         <Zap className="h-3.5 w-3.5 mr-1.5" />
                         <span className="hidden sm:inline">Finalizar</span>
@@ -612,7 +615,7 @@ export function CopilotPanel({ analysis: a, timer, formatTime, onFinish, onBack 
                 <Button
                     onClick={onFinish}
                     size="lg"
-                    className="w-full h-12 bg-gradient-to-r from-[#450693] to-[#8C00FF] hover:from-[#3a0580] hover:to-[#7a00df] text-white font-bold shadow-lg rounded-2xl text-base"
+                    className="w-full h-12 bg-gradient-to-r from-[#4a1fa0] to-[#682bd7] hover:from-[#4a1fa0] hover:to-[#5a24bc] text-white font-bold shadow-lg rounded-2xl text-base"
                 >
                     <Zap className="h-4 w-4 mr-2" />
                     Finalizar Consulta

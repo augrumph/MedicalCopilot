@@ -24,8 +24,8 @@ export function AppointmentDetailsSidebar({
  </Button>
  </div>
  <div className="flex flex-col items-center justify-center h-full text-center py-12">
- <div className="bg-[#8C00FF]/10 p-4 rounded-full mb-4">
- <Calendar className="h-8 w-8 text-[#8C00FF]" />
+ <div className="bg-[#682bd7]/10 p-4 rounded-full mb-4">
+ <Calendar className="h-8 w-8 text-[#682bd7]" />
  </div>
  <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum agendamento selecionado</h3>
  <p className="text-gray-600 text-sm max-w-[180px]">
@@ -67,7 +67,7 @@ export function AppointmentDetailsSidebar({
  <div className="space-y-6 flex-1 overflow-y-auto">
  <div className="space-y-4">
  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
- <Calendar className="h-5 w-5 text-[#8C00FF]" />
+ <Calendar className="h-5 w-5 text-[#682bd7]" />
  <div>
  <p className="text-sm text-gray-500">Data</p>
  <p className="font-medium">{new Date(appointment.date).toLocaleDateString('pt-BR')}</p>
@@ -75,7 +75,7 @@ export function AppointmentDetailsSidebar({
  </div>
 
  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
- <Clock className="h-5 w-5 text-[#8C00FF]" />
+ <Clock className="h-5 w-5 text-[#682bd7]" />
  <div>
  <p className="text-sm text-gray-500">Horário</p>
  <p className="font-medium">{appointment.startTime} - {appointment.endTime}</p>
@@ -84,7 +84,7 @@ export function AppointmentDetailsSidebar({
 
  {appointment.patientPhone && (
  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
- <Phone className="h-5 w-5 text-[#8C00FF]" />
+ <Phone className="h-5 w-5 text-[#682bd7]" />
  <div>
  <p className="text-sm text-gray-500">Telefone</p>
  <p className="font-medium">{appointment.patientPhone}</p>
@@ -93,7 +93,7 @@ export function AppointmentDetailsSidebar({
  )}
 
  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
- <User className="h-5 w-5 text-[#8C00FF]" />
+ <User className="h-5 w-5 text-[#682bd7]" />
  <div>
  <p className="text-sm text-gray-500">Médico</p>
  <p className="font-medium">{appointment.doctorName ||'Dr. Silva'}</p>
@@ -134,7 +134,7 @@ export function AppointmentDetailsSidebar({
  <Button
  size="sm"
  variant={appointment.status ==='confirmed' ?'default' :'outline'}
- className={appointment.status ==='confirmed' ?'bg-[#8C00FF] #7a00e6]' :''}
+ className={appointment.status ==='confirmed' ?'bg-[#682bd7] #5a24bc]' :''}
  onClick={() => onStatusChange('confirmed')}
  >
  Confirmar

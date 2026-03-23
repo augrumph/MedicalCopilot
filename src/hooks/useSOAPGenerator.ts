@@ -103,10 +103,10 @@ export function useSOAPGenerator() {
 
         setIsGenerating(true);
         setError(null);
-        console.log('📝 Generating SOAP...', {
-            transcriptLength: request.transcript.length,
-            patient: request.patientName,
-        });
+        // console.log('📝 Generating SOAP...', {
+        //     transcriptLength: request.transcript.length,
+        //     patient: request.patientName,
+        // });
 
         try {
             // Build patient context
@@ -114,6 +114,7 @@ export function useSOAPGenerator() {
                 `Nome: ${request.patientName}`,
                 request.patientAge ? `Idade: ${request.patientAge} anos` : null,
                 request.patientGender ? `Sexo: ${request.patientGender}` : null,
+                request.activeProtocolTitle ? `Protocolo Clínico Utilizado: ${request.activeProtocolTitle}` : null,
             ].filter(Boolean).join('\n');
 
             // Gemini Service Call
@@ -139,7 +140,7 @@ Gere um prontuário SOAP completo e profissional em formato JSON.`;
                 throw new Error('Empty response from Gemini');
             }
 
-            console.log('🤖 Raw SOAP response:', aiResponse);
+            // console.log('🤖 Raw SOAP response:', aiResponse);
 
             const soapContent = parseSOAPResponse(aiResponse);
 
@@ -147,7 +148,7 @@ Gere um prontuário SOAP completo e profissional em formato JSON.`;
                 throw new Error('Failed to parse SOAP response');
             }
 
-            console.log('✅ SOAP generated successfully');
+            // console.log('✅ SOAP generated successfully');
             return soapContent;
 
         } catch (err: any) {

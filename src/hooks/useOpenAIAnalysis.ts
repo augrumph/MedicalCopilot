@@ -96,9 +96,13 @@ export function useOpenAIAnalysis({
     const [error, setError] = useState<string | null>(null);
 
     const lastAnalyzedTranscript = useRef<string>('');
-    const transcriptRef = useRef<string>(transcript);
-    const analysisTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const insightIdCounter = useRef(0);
+    const transcriptRef          = useRef<string>(transcript);
+    const analysisTimerRef       = useRef<NodeJS.Timeout | null>(null);
+    const insightIdCounter       = useRef(0);
+    // Ref-based guard: prevents concurrent calls without causing interval resets
+    const isAnalyzingRef         = useRef(false);
+
+    const MAX_INSIGHTS = 30;
 
     // Keep transcript ref updated always
     useEffect(() => {
@@ -113,27 +117,25 @@ export function useOpenAIAnalysis({
 
         // Skip if transcript too short
         if (!currentTranscript || currentTranscript.length < minTranscriptLength) {
-            console.log('⏭️ Transcript too short, skipping analysis');
+            // console.log('⏭️ Transcript too short, skipping analysis');
             return;
         }
 
         // Skip if already analyzed this exact transcript
         if (currentTranscript === lastAnalyzedTranscript.current) {
-            console.log('⏭️ Already analyzed this transcript');
+            // console.log('⏭️ Already analyzed this transcript');
             return;
         }
 
-        // Skip if already analyzing
-        if (isAnalyzing) {
-            console.log('⏭️ Analysis already in progress');
-            return;
-        }
+        // Skip if already analyzing (ref-based — does not cause interval reset)
+        if (isAnalyzingRef.current) return;
 
+        isAnalyzingRef.current = true;
         setIsAnalyzing(true);
         setError(null);
 
         try {
-            console.log(`🔍 Analyzing transcript (${currentTranscript.length} chars)...`);
+            // console.log(`🔍 Analyzing transcript (${currentTranscript.length} chars)...`);
 
             const userPrompt = `TRANSCRIÇÃO DA CONSULTA:\n\n${currentTranscript}\n\nAnalise e gere insights médicos relevantes em JSON.`;
 
@@ -154,7 +156,7 @@ export function useOpenAIAnalysis({
             const parsed = parseAIResponse(aiResponse);
 
             if (!parsed || parsed.insights.length === 0) {
-                console.log('ℹ️ No new insights generated');
+                // console.log('ℹ️ No new insights generated');
                 lastAnalyzedTranscript.current = currentTranscript;
                 return;
             }
@@ -169,17 +171,17 @@ export function useOpenAIAnalysis({
                 timestamp: Date.now(),
             }));
 
-            console.log(`✅ Generated ${newInsights.length} insights:`, newInsights.map(i => i.title));
-            setInsights(prev => [...prev, ...newInsights]);
+            setInsights(prev => [...prev, ...newInsights].slice(-MAX_INSIGHTS));
             lastAnalyzedTranscript.current = currentTranscript;
 
         } catch (err: any) {
             console.error('❌ AI Analysis failed:', err);
             setError(err.message);
         } finally {
+            isAnalyzingRef.current = false;
             setIsAnalyzing(false);
         }
-    }, [minTranscriptLength, isAnalyzing]);
+    }, [minTranscriptLength]); // stable deps — isAnalyzingRef used instead of isAnalyzing state
 
     /**
      * Auto-analysis effect
@@ -193,7 +195,7 @@ export function useOpenAIAnalysis({
             return;
         }
 
-        console.log(`⏱️ Starting auto-analysis interval: ${analysisInterval}ms`);
+        // console.log(`⏱️ Starting auto-analysis interval: ${analysisInterval}ms`);
 
         // Use setInterval for constant polling instead of setTimeout which resets
         analysisTimerRef.current = setInterval(() => {

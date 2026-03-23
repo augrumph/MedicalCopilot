@@ -31,7 +31,7 @@ export function useDeepgramNative({ onTranscript }: UseDeepgramNativeProps) {
 
         try {
             isConnectingRef.current = true;
-            console.log('🎙️ Connecting to Deepgram (Native WebSocket)...');
+            // console.log('🎙️ Connecting to Deepgram (Native WebSocket)...');
 
             // Build WebSocket URL with parameters - NO encoding/sample_rate for webm
             const params = new URLSearchParams({
@@ -52,11 +52,11 @@ export function useDeepgramNative({ onTranscript }: UseDeepgramNativeProps) {
             wsRef.current = ws;
 
             ws.onopen = async () => {
-                console.log('✅ Deepgram WebSocket connection established');
+                // console.log('✅ Deepgram WebSocket connection established');
                 setError(null);
 
                 // Get microphone access
-                console.log('🎤 Requesting microphone access...');
+                // console.log('🎤 Requesting microphone access...');
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({
                         audio: {
@@ -67,7 +67,7 @@ export function useDeepgramNative({ onTranscript }: UseDeepgramNativeProps) {
                         }
                     });
 
-                    console.log('✅ Microphone access granted');
+                    // console.log('✅ Microphone access granted');
                     streamRef.current = stream;
 
                     // Create MediaRecorder with webm/opus (browser native)
@@ -79,7 +79,7 @@ export function useDeepgramNative({ onTranscript }: UseDeepgramNativeProps) {
                     // Send audio data to Deepgram
                     mediaRecorder.ondataavailable = (event) => {
                         if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-                            console.log(`🎵 Sending audio chunk: ${event.data.size} bytes`);
+                            // console.log(`🎵 Sending audio chunk: ${event.data.size} bytes`);
                             ws.send(event.data);
                         }
                     };
@@ -87,7 +87,7 @@ export function useDeepgramNative({ onTranscript }: UseDeepgramNativeProps) {
                     // Start recording (send chunks every 100ms for lower latency)
                     mediaRecorder.start(100);
                     setIsListening(true);
-                    console.log('🚀 Deepgram transcription started');
+                    // console.log('🚀 Deepgram transcription started');
 
                 } catch (micError: any) {
                     console.error('❌ Microphone error:', micError);
@@ -100,7 +100,7 @@ export function useDeepgramNative({ onTranscript }: UseDeepgramNativeProps) {
                     const data = JSON.parse(event.data);
 
                     // Log ALL messages from Deepgram for debugging
-                    console.log('📨 Deepgram message received:', data);
+                    // console.log('📨 Deepgram message received:', data);
 
                     // Handle error messages from Deepgram
                     if (data.error) {
@@ -115,14 +115,14 @@ export function useDeepgramNative({ onTranscript }: UseDeepgramNativeProps) {
                         const isFinal = data.is_final || false;
                         const confidence = data.channel.alternatives[0].confidence;
 
-                        console.log('📝 Deepgram transcript:', { transcript, isFinal, confidence });
+                        // console.log('📝 Deepgram transcript:', { transcript, isFinal, confidence });
 
                         if (transcript && transcript.trim()) {
                             onTranscript(transcript, isFinal, undefined, confidence);
                         }
                     } else if (data.type === 'Results') {
                         // Empty result (no speech detected in this segment)
-                        console.log('⚪ Empty transcript result (no speech detected)');
+                        // console.log('⚪ Empty transcript result (no speech detected)');
                     }
                 } catch (parseError) {
                     console.error('❌ Error parsing Deepgram response:', parseError);
@@ -135,15 +135,15 @@ export function useDeepgramNative({ onTranscript }: UseDeepgramNativeProps) {
             };
 
             ws.onclose = (event) => {
-                console.log('🔌 Deepgram connection closed:', {
-                    code: event.code,
-                    reason: event.reason || 'No reason provided',
-                    wasClean: event.wasClean
-                });
+                // console.log('🔌 Deepgram connection closed:', {
+                //     code: event.code,
+                //     reason: event.reason || 'No reason provided',
+                //     wasClean: event.wasClean
+                // });
 
                 // Log common close codes
                 if (event.code === 1000) {
-                    console.log('✅ Normal closure');
+                    // console.log('✅ Normal closure');
                 } else if (event.code === 1006) {
                     console.warn('⚠️ Abnormal closure - connection lost');
                 } else if (event.code === 4001) {
@@ -166,8 +166,7 @@ export function useDeepgramNative({ onTranscript }: UseDeepgramNativeProps) {
     }, [onTranscript]);
 
     const disconnect = useCallback(() => {
-        console.log('🔌 Disconnecting from Deepgram...');
-        console.trace('Disconnect trace:');
+        // console.log('🔌 Disconnecting from Deepgram...');
 
         // Stop media recorder
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -189,7 +188,7 @@ export function useDeepgramNative({ onTranscript }: UseDeepgramNativeProps) {
         mediaRecorderRef.current = null;
         setIsListening(false);
 
-        console.log('✅ Disconnected successfully');
+        // console.log('✅ Disconnected successfully');
     }, []);
 
     // Cleanup on unmount

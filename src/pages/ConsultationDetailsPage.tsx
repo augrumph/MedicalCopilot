@@ -26,14 +26,14 @@ export function ConsultationDetailsPage() {
 
  if (!consultation || !patient) {
  return (
- <AppLayout title="Consulta não encontrada" description="Detalhes da consulta">
+ <AppLayout>
  <div className="flex flex-col items-center justify-center h-full py-20">
  <div className="h-24 w-24 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mb-6">
  <AlertTriangle className="h-12 w-12 text-white" />
  </div>
  <h2 className="text-2xl font-bold mb-2">Consulta não encontrada</h2>
  <p className="text-gray-600 mb-6">A consulta solicitada não existe ou foi removida.</p>
- <Button onClick={() => navigate('/dashboard')} className="bg-gradient-to-r from-[#8C00FF] to-[#450693]">
+ <Button onClick={() => navigate('/dashboard')} className="bg-gradient-to-r from-[#682bd7] to-[#4a1fa0]">
  <ArrowLeft className="mr-2 h-4 w-4" />
  Voltar ao Dashboard
  </Button>
@@ -162,7 +162,7 @@ export function ConsultationDetailsPage() {
  const suggestedQuestions = generateContextualQuestions();
 
  return (
- <AppLayout title="Consulta Anterior" description={patient.name}>
+ <AppLayout>
  <PageTransition>
  <div className="max-w-5xl mx-auto space-y-6">
  {/* Header */}
@@ -180,18 +180,19 @@ export function ConsultationDetailsPage() {
  Voltar
  </Button>
 
- <Card className="bg-gradient-to-r from-[#8C00FF] to-[#450693] text-white border-0">
- <CardContent className="p-6">
+ <Card className="bg-[#1b1b1b] text-white border-0 shadow-xl overflow-hidden relative">
+ <div className="absolute top-0 right-0 w-32 h-32 bg-[#512B81]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+ <CardContent className="p-6 relative">
  <div className="flex items-center justify-between">
  <div>
- <h1 className="text-2xl font-bold mb-1">{patient.name}</h1>
- <div className="flex items-center gap-3 text-sm text-white/80">
+ <h1 className="text-2xl font-black mb-1 tracking-tight">{patient.name}</h1>
+ <div className="flex items-center gap-3 text-sm text-white/40 font-bold uppercase tracking-widest">
  <span>{patient.age} anos</span>
  <span>•</span>
  <span>{formatShortDate(consultation.startedAt)}</span>
  </div>
  </div>
- <Badge className="bg-white/20 text-white border-0">
+ <Badge className="bg-[#512B81] text-white border-0 text-[10px] font-bold uppercase tracking-widest px-3">
  Última consulta
  </Badge>
  </div>
@@ -215,7 +216,7 @@ export function ConsultationDetailsPage() {
  <div className={`text-2xl font-bold ${
  kpi.color ==='blue' ?'text-blue-600' :
  kpi.color ==='green' ?'text-green-600' :
- kpi.color ==='purple' ?'text-[#8C00FF]' :
+ kpi.color ==='purple' ?'text-[#682bd7]' :
 'text-red-600'
 }`}>
  {kpi.value}
@@ -238,7 +239,7 @@ export function ConsultationDetailsPage() {
  <Card>
  <CardContent className="p-5">
  <h3 className="font-bold text-base text-gray-900 mb-4 flex items-center gap-2">
- <FileText className="h-5 w-5 text-[#8C00FF]" />
+ <FileText className="h-5 w-5 text-[#682bd7]" />
  Resumo da Última Consulta
  </h3>
 
@@ -267,7 +268,7 @@ export function ConsultationDetailsPage() {
  <ul className="space-y-1.5">
  {consultation.patientSummary.whatToDo.map((item: string, idx: number) => (
  <li key={idx} className="text-sm text-gray-900 flex items-start gap-2">
- <span className="text-[#8C00FF] font-bold">•</span>
+ <span className="text-[#682bd7] font-bold">•</span>
  <span>{item}</span>
  </li>
  ))}
@@ -423,7 +424,7 @@ export function ConsultationDetailsPage() {
  <Card>
  <CardContent className="p-5">
  <h3 className="font-bold text-base text-gray-900 mb-3 flex items-center gap-2">
- <Lightbulb className="h-5 w-5 text-[#8C00FF]" />
+ <Lightbulb className="h-5 w-5 text-[#682bd7]" />
  Como Foi Explicado ao Paciente
  </h3>
  <p className="text-sm text-gray-700 leading-relaxed">
