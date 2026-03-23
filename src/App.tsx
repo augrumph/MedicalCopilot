@@ -24,6 +24,7 @@ const queryClient = new QueryClient({
   },
 });
 
+// API configuration
 const API = import.meta.env.VITE_BACKEND_URL || 'https://api.medicalcopilot.com.br';
 
 function App() {
