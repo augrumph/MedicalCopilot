@@ -98,8 +98,10 @@ export default function RegisterPage() {
           useAppStore.setState({
             isAuthenticated: true,
             user: {
+              id: data.user.id,
               name: data.user.name || data.user.fullName,
-              email: data.user.email
+              email: data.user.email,
+              isCrmVerified: data.user.isCrmVerified ?? false
             }
           });
           toast.success('Login com Google realizado!');
